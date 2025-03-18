@@ -57,7 +57,7 @@ func (p *bskyProvider) Schema(ctx context.Context, req provider.SchemaRequest, r
 				Optional: true,
 			},
 			"password": schema.StringAttribute{
-				MarkdownDescription: "Your Bluesky password. Use an [app password](https://bsky.app/settings/app-passwords) for added security. Note that app passwords cannot be used to manage account resources." +
+				MarkdownDescription: "Your Bluesky password. Use an [app password](https://bsky.app/settings/app-passwords) for added security." +
 					"\nCan also be set via the BSKY_PASSWORD environment variable.",
 				Optional: true,
 			},
@@ -177,8 +177,11 @@ func (p *bskyProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 
 	// Create a new Bluesky client with the configuration values, and log in
 	client := &xrpc.Client{
-		Host:       pdsHost,
-		AdminToken: &pdsAdminpassword, // used by com.atproto.server.createInviteCode
+		Host: pdsHost,
+	}
+	if pdsAdminpassword != "" {
+		// used by com.atproto.server.createInviteCode
+		client.AdminToken = &pdsAdminpassword
 	}
 	authInfo, err := atproto.ServerCreateSession(ctx, client, &atproto.ServerCreateSession_Input{
 		Identifier: handle,

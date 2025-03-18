@@ -5,11 +5,9 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"time"
 
 	"github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/xrpc"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -58,7 +56,7 @@ func (l *accountResource) Metadata(_ context.Context, req resource.MetadataReque
 // Schema defines the schema for the resource.
 func (r *accountResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manage Accounts. This resource requires the provider to be configured with a user password, not an app password.",
+		MarkdownDescription: "Manage Accounts. This resource requires the provider to be configured with `PDSAdminPassword`.",
 		Attributes: map[string]schema.Attribute{
 			"did": schema.StringAttribute{
 				MarkdownDescription: "Account's DID.",
@@ -119,16 +117,6 @@ func (l *accountResource) Create(ctx context.Context, req resource.CreateRequest
 		}
 	}
 
-	// Get server DID
-	server, err := atproto.ServerDescribeServer(ctx, l.client)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error creating account",
-			"Could not get server DID, unexpected error: "+err.Error(),
-		)
-		return
-	}
-
 	// Create an invite code
 	createInviteCodeInput := &atproto.ServerCreateInviteCode_Input{
 		UseCount: 1,
@@ -141,20 +129,6 @@ func (l *accountResource) Create(ctx context.Context, req resource.CreateRequest
 		)
 		return
 	}
-
-	// Get server auth for create account
-	authOutput, err := atproto.ServerGetServiceAuth(ctx, l.client, server.Did, time.Now().Unix()+60, "com.atproto.server.createAccount")
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error creating account",
-			"Could not get server auth, unexpected error: "+err.Error(),
-		)
-		return
-	}
-
-	// Ok to override there, this is a copy of the client
-	l.client.Auth.AccessJwt = authOutput.Token
-	l.client.Auth.RefreshJwt = authOutput.Token
 
 	// Generate API request body from plan. Adapted from the account migratio script:
 	// https://github.com/bluesky-social/indigo/blob/main/cmd/goat/account_migrate.go
@@ -336,6 +310,14 @@ func (l *accountResource) Configure(_ context.Context, req resource.ConfigureReq
 		return
 	}
 
+	if client.AdminToken == nil {
+		resp.Diagnostics.AddError(
+			"PDSAdminPassword required",
+			"An admin token is required to manage accounts, please configure the provider with the PDSAdminPassword.",
+		)
+		return
+	}
+
 	l.client = client
 }
 
@@ -345,27 +327,6 @@ func (l *accountResource) ImportState(ctx context.Context, req resource.ImportSt
 }
 
 func (l *accountResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	if req.Plan.Raw.IsNull() != req.State.Raw.IsNull() {
-		// account is being created or deleted, require user password. App password will not work.
-		claims := jwt.MapClaims{}
-		_, _, err := jwt.NewParser().ParseUnverified(l.client.Auth.AccessJwt, claims)
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error parsing auth token",
-				"Could not parse auth token: "+err.Error(),
-			)
-			return
-		}
-
-		// if claims map contains "scope" key
-		if _, ok := claims["scope"]; ok && claims["scope"] == "com.atproto.appPass" {
-			resp.Diagnostics.AddError(
-				"User password required for account create/delete",
-				"App password cannot be used for account creation or deletion, use user password instead.",
-			)
-		}
-	}
-
 	var plan accountResourceModel
 	if !req.Plan.Raw.IsNull() {
 		diags := req.Plan.Get(ctx, &plan)
