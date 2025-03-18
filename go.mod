@@ -6,6 +6,7 @@ toolchain go1.24.1
 
 require (
 	github.com/bluesky-social/indigo v0.0.0-20250317190625-0d12453b662d
+	github.com/golang-jwt/jwt/v4 v4.5.1
 	github.com/hashicorp/terraform-plugin-framework v1.14.1
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 )
