@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"github.com/bluesky-social/indigo/api/atproto"
 	"github.com/bluesky-social/indigo/xrpc"
@@ -35,12 +36,12 @@ type accountResource struct {
 }
 
 type accountResourceModel struct {
-	Did             types.String `tfsdk:"did"`
-	Email           types.String `tfsdk:"email"`
-	Handle          types.String `tfsdk:"handle"`
-	InitialPassword types.String `tfsdk:"initial_password"`
+	Did      types.String `tfsdk:"did"`
+	Email    types.String `tfsdk:"email"`
+	Handle   types.String `tfsdk:"handle"`
+	Password types.String `tfsdk:"password"`
 	// TODO:
-	//recoveryKey       types.String `tfsdk:"recovery_key"`
+	//recoveryKey     types.String `tfsdk:"recovery_key"`
 
 	// These don't make sense to manage via TF:
 	//inviteCode
@@ -72,11 +73,8 @@ func (r *accountResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"handle": schema.StringAttribute{
 				MarkdownDescription: "Requested handle for the account",
 				Required:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
-			"initial_password": schema.StringAttribute{
+			"password": schema.StringAttribute{
 				MarkdownDescription: "Initial account password. If not specified one will be generated and included in the Terraform output in plaintext.",
 				Sensitive:           true,
 				Optional:            true,
@@ -95,7 +93,7 @@ func (l *accountResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	generatedPassword := false
-	password := plan.InitialPassword.ValueString()
+	password := plan.Password.ValueString()
 	if password == "" {
 		generatedPassword = true
 
@@ -199,74 +197,84 @@ func (l *accountResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (l *accountResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	// Retrieve values from a plan.
+	var plan accountResourceModel
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if diags.HasError() {
+		return
+	}
+
 	// Get current state.
 	var state accountResourceModel
-	diags := req.State.Get(ctx, &state)
+	diags = req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// update email, handle, or password
-	resp.Diagnostics.AddError("Not implemented", "Update is not implemented for accounts")
-	return
-
-	/*
-		// Generate API request body from plan.
-		uri, err := syntax.ParseATURI(state.Uri.ValueString())
+	// update email
+	if !strings.EqualFold(plan.Email.ValueString(), state.Email.ValueString()) {
+		updateEmailInput := &atproto.AdminUpdateAccountEmail_Input{
+			Account: state.Did.ValueString(),
+			Email:   plan.Email.ValueString(),
+		}
+		err := atproto.AdminUpdateAccountEmail(ctx, l.client, updateEmailInput)
 		if err != nil {
 			resp.Diagnostics.AddError(
-				"Invalid starter pack URI",
-				"Could not parse Bluesky starter pack URI "+state.Uri.ValueString()+": "+err.Error(),
+				"Error updating account",
+				"Could not update account email, error: "+err.Error(),
 			)
 			return
+		} else {
+			state.Email = plan.Email
 		}
-		record, err := atproto.RepoGetRecord(ctx, l.client, "", uri.Collection().String(), uri.Authority().String(), uri.RecordKey().String())
+	}
+
+	// update handle
+	if !strings.EqualFold(plan.Handle.ValueString(), state.Handle.ValueString()) {
+		updateHandleInput := &atproto.AdminUpdateAccountHandle_Input{
+			Did:    state.Did.ValueString(),
+			Handle: plan.Handle.ValueString(),
+		}
+		err := atproto.AdminUpdateAccountHandle(ctx, l.client, updateHandleInput)
 		if err != nil {
 			resp.Diagnostics.AddError(
-				"Failed to retrieve starter pack",
-				"Could not retrieve the current state of the starter pack "+state.Uri.ValueString()+": "+err.Error(),
+				"Error updating account",
+				"Could not update account handle, error: "+err.Error(),
 			)
-			return
+			// do not return so the state gets updated with the successful email update
+		} else {
+			state.Handle = plan.Handle
 		}
-		pack, ok := record.Value.Val.(*bsky.GraphStarterpack)
-		if !ok {
-			resp.Diagnostics.AddError(
-				"Failed to parse retrieved starter pack",
-				"Could not cast the returned starter pack into the expected type",
-			)
-			return
-		}
+	}
 
-		pack.Name = state.Name.ValueString()
-		pack.Description = state.Description.ValueStringPointer()
-		pack.List = state.ListUri.ValueString()
-
-		// Update existing list.
-		putRecordInput := &atproto.RepoPutRecord_Input{
-			Collection: uri.Collection().String(),
-			Repo:       uri.Authority().String(),
-			Rkey:       uri.RecordKey().String(),
-			SwapRecord: record.Cid,
-			Record: &util.LexiconTypeDecoder{
-				Val: pack,
-			},
+	// update password
+	if plan.Password.ValueString() == "" {
+		// just remove saved initial password from state
+		state.Password = types.StringNull()
+	} else if !strings.EqualFold(plan.Password.ValueString(), state.Password.ValueString()) {
+		updatePasswordInput := &atproto.AdminUpdateAccountPassword_Input{
+			Did:      state.Did.ValueString(),
+			Password: plan.Password.ValueString(),
 		}
-		_, err = atproto.RepoPutRecord(ctx, l.client, putRecordInput)
+		err := atproto.AdminUpdateAccountPassword(ctx, l.client, updatePasswordInput)
 		if err != nil {
 			resp.Diagnostics.AddError(
-				"Failed to update starter pack",
-				"Could not update starter pack "+state.Uri.ValueString()+": "+err.Error(),
+				"Error updating account",
+				"Could not update account password, error: "+err.Error(),
 			)
-			return
+			// do not return so the state gets updated with the successful email and handle update
+		} else {
+			state.Password = plan.Password
 		}
+	}
 
-		diags = resp.State.Set(ctx, state)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-	*/
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
@@ -336,7 +344,7 @@ func (l *accountResource) ModifyPlan(ctx context.Context, req resource.ModifyPla
 		}
 
 		// warn if a plaintext password will be generated during account creation
-		if req.State.Raw.IsNull() && plan.InitialPassword.ValueString() == "" {
+		if req.State.Raw.IsNull() && plan.Password.ValueString() == "" {
 			resp.Diagnostics.AddWarning(
 				"Initial password not specified",
 				"Initial password for account "+plan.Handle.ValueString()+" was not specified, one will be generated and included in the Terraform output in plaintext.",
