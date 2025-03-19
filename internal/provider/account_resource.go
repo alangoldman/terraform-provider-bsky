@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/bluesky-social/indigo/api/atproto"
+	"github.com/bluesky-social/indigo/api/bsky"
+	"github.com/bluesky-social/indigo/lex/util"
 	"github.com/bluesky-social/indigo/xrpc"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -15,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 // Ensure the implementation satisfies the expected interfaces.
@@ -40,6 +43,7 @@ type accountResourceModel struct {
 	Email    types.String `tfsdk:"email"`
 	Handle   types.String `tfsdk:"handle"`
 	Password types.String `tfsdk:"password"`
+	Name     types.String `tfsdk:"name"`
 	// TODO:
 	//recoveryKey     types.String `tfsdk:"recovery_key"`
 
@@ -77,6 +81,10 @@ func (r *accountResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"password": schema.StringAttribute{
 				MarkdownDescription: "Initial account password. If not specified one will be generated and included in the Terraform output in plaintext.",
 				Sensitive:           true,
+				Optional:            true,
+			},
+			"name": schema.StringAttribute{
+				MarkdownDescription: "The name of the user",
 				Optional:            true,
 			},
 		},
@@ -147,6 +155,18 @@ func (l *accountResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
+	// Update the account profile with the name if it was provided
+	if plan.Name.ValueString() != "" {
+		err = updateProfile(ctx, l.client, createOutput.Did, plan.Name.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error creating account",
+				"Could not update account profile, error: "+err.Error(),
+			)
+			// do not return here so the account is still stored in the state below
+		}
+	}
+
 	// Map response body to schema and populate Computed attribute values.
 	plan.Did = types.StringValue(createOutput.Did)
 
@@ -179,13 +199,25 @@ func (l *accountResource) Read(ctx context.Context, req resource.ReadRequest, re
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to retrieve account",
-			"Could not retrieve the current state of the account, error: "+err.Error(),
+			"Could not retrieve the account, error: "+err.Error(),
 		)
 		return
 	}
 
 	state.Handle = types.StringValue(account.Handle)
 	state.Email = types.StringValue(*account.Email)
+
+	profile, _, err := getProfile(ctx, l.client, state.Did.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Failed to retrieve account profile",
+			"Could not retrieve the account's profile, error: "+err.Error(),
+		)
+		return
+	}
+	if profile.DisplayName != nil {
+		state.Name = types.StringValue(*profile.DisplayName)
+	}
 
 	// Set refreshed state.
 	diags = resp.State.Set(ctx, &state)
@@ -226,9 +258,8 @@ func (l *accountResource) Update(ctx context.Context, req resource.UpdateRequest
 				"Could not update account email, error: "+err.Error(),
 			)
 			return
-		} else {
-			state.Email = plan.Email
 		}
+		state.Email = plan.Email
 	}
 
 	// update handle
@@ -243,10 +274,9 @@ func (l *accountResource) Update(ctx context.Context, req resource.UpdateRequest
 				"Error updating account",
 				"Could not update account handle, error: "+err.Error(),
 			)
-			// do not return so the state gets updated with the successful email update
-		} else {
-			state.Handle = plan.Handle
+			return
 		}
+		state.Handle = plan.Handle
 	}
 
 	// update password
@@ -264,10 +294,22 @@ func (l *accountResource) Update(ctx context.Context, req resource.UpdateRequest
 				"Error updating account",
 				"Could not update account password, error: "+err.Error(),
 			)
-			// do not return so the state gets updated with the successful email and handle update
-		} else {
-			state.Password = plan.Password
+			return
 		}
+		state.Password = plan.Password
+	}
+
+	// update profile
+	if !strings.EqualFold(plan.Name.ValueString(), state.Name.ValueString()) {
+		err := updateProfile(ctx, l.client, state.Did.ValueString(), plan.Name.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error updating account",
+				"Could not update account profile, error: "+err.Error(),
+			)
+			return
+		}
+		state.Name = plan.Name
 	}
 
 	diags = resp.State.Set(ctx, state)
@@ -351,4 +393,53 @@ func (l *accountResource) ModifyPlan(ctx context.Context, req resource.ModifyPla
 			)
 		}
 	}
+}
+
+func updateProfile(ctx context.Context, client *xrpc.Client, did, name string) error {
+	profile, record, err := getProfile(ctx, client, did)
+	if err != nil {
+		return err
+	}
+
+	// update profile
+	profile.DisplayName = &name
+
+	nameUpdateInput := &atproto.RepoPutRecord_Input{
+		Repo:       client.Auth.Did,
+		Collection: "app.bsky.actor.profile",
+		Record: &util.LexiconTypeDecoder{
+			Val: profile,
+		},
+		Rkey:       "self",
+		SwapRecord: record.Cid,
+	}
+	updatedRecord, err := atproto.RepoPutRecord(ctx, client, nameUpdateInput)
+	if err != nil {
+		return fmt.Errorf("could not update account profile, unexpected error: %w", err)
+	} else {
+		tflog.Debug(ctx, "Updated account profile", map[string]any{"cid": updatedRecord.Cid})
+	}
+
+	return nil
+}
+
+func getProfile(ctx context.Context, client *xrpc.Client, did string) (*bsky.ActorProfile, *atproto.RepoGetRecord_Output, error) {
+	record, err := atproto.RepoGetRecord(ctx, client, "", "app.bsky.actor.profile", did, "self")
+	if err != nil {
+		// cast error as xrpc.Error
+		if xrpcErr, ok := err.(*xrpc.Error); ok {
+			if innerErr, ok := xrpcErr.Wrapped.(*xrpc.XRPCError); ok &&
+				innerErr.ErrStr == "RecordNotFound" {
+				return &bsky.ActorProfile{}, &atproto.RepoGetRecord_Output{}, nil
+			}
+		}
+		return nil, nil, fmt.Errorf("could not retrieve account profile, unexpected error: %w", err)
+	}
+
+	profile, ok := record.Value.Val.(*bsky.ActorProfile)
+	if !ok {
+		return nil, nil, fmt.Errorf("could not cast the returned account profile into the expected type")
+	}
+
+	return profile, record, nil
 }
