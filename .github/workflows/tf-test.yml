@@ -29,7 +29,8 @@ jobs:
           echo "PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}" >> $GITHUB_ENV
           echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> $GITHUB_ENV
           echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> $GITHUB_ENV
-          echo "PDS_HOSTNAME=example.com:3000" >> $GITHUB_ENV
+          echo "PDS_HOSTNAME=example.com" >> $GITHUB_ENV
+          echo "PDS_PORT=443" >> $GITHUB_ENV
 
       - name: Pull the Bluesky PDS Docker container
         run: |
