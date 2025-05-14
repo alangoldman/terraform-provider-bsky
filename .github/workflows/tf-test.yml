@@ -32,7 +32,7 @@ jobs:
       - name: Pull the Bluesky PDS Docker container
         run: |
           docker pull \
-            gravityfargo/bluesky-pds:latest
+            gravityfargo/bluesky-pds
 
       - name: Run Bluesky PDS Docker container
         run: |
