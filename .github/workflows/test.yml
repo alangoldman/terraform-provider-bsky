@@ -108,7 +108,7 @@ jobs:
 
       - name: Create admin account
         run: |
-          docker exec bluesky-pds /bin/bash -c "echo -e 'admin@example.com\nadminhandle' | sudo pdsadmin account create"
+          docker exec $PDS_CONTAINER_ID /bin/bash -c "echo -e 'admin@example.com\nadminhandle' | sudo pdsadmin account create"
 
       - run: go test -v -cover ./internal/provider/
         timeout-minutes: 10
