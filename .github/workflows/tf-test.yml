@@ -1,0 +1,56 @@
+name: Test Bluesky Provider
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up OpenSSL
+        run: sudo apt-get install -y openssl
+
+      - name: Generate secrets
+        run: |
+          # Generate secret environment variables
+          echo PDS_ADMIN_PASSWORD: $(openssl rand --hex 16)
+          echo PDS_JWT_SECRET: $(openssl rand --hex 16)
+          echo PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: $(openssl ecparam --name secp256k1 --genkey --noout --outform DER | tail --bytes=+8 | head --bytes=32 | xxd --plain --cols 32)
+          echo "PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}" >> $GITHUB_ENV
+          echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> $GITHUB_ENV
+          echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> $GITHUB_ENV
+
+      - name: Pull the Bluesky PDS Docker container
+        run: |
+          docker pull \
+            gravityfargo/bluesky-pds:latest
+
+      - name: Run Bluesky PDS Docker container
+        run: |
+          docker run -d \
+            gravityfargo/bluesky-pds
+
+      # - name: Wait for the container to be ready
+      #   run: sleep 30
+
+      # - name: Run Terraform Init
+      #   run: |
+      #     terraform init
+
+      # - name: Run Terraform Apply
+      #   run: |
+      #     terraform apply -auto-approve
+
+      # - name: Clean up
+      #   run: |
+      #     docker stop $(docker ps -q --filter ancestor=gravityfargo/bluesky-pds:latest)
+      #     docker rm $(docker ps -aq --filter ancestor=gravityfargo/bluesky-pds:latest)
