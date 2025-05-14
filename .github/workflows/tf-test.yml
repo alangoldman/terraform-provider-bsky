@@ -1,0 +1,137 @@
+name: Test Bluesky Provider
+# This workflow tests the Bluesky Provider by setting up a PDS instance using Docker Compose,
+# creating an admin account, and running tests against the PDS instance.
+
+# The PDS instance is set up with Traefik for routing and TLS termination. This is required because
+# the pds-admin script requires HTTPS to create an admin account.
+
+# If this becomes hard to maintain, an alternative would be to modify the pds-admin script after
+# downloading it use HTTP, or an option could be added to the real pds-admin script to allow for
+# easier testing.
+
+# It uses a self-signed certificate for HTTPS and runs the PDS admin script to create an admin.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Workflow dependencies
+        run: sudo apt-get install -y docker-compose openssl
+
+      - name: Generate secrets and create pds.env
+        run: |
+          # Generate secret environment variables
+          export PDS_ADMIN_PASSWORD=$(openssl rand --hex 16)
+          export PDS_JWT_SECRET=$(openssl rand --hex 16)
+          export PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=$(openssl ecparam --name secp256k1 --genkey --noout --outform DER | tail --bytes=+8 | head --bytes=32 | xxd --plain --cols 32)
+
+          PDS_ENV_FILE=.github/workflows/docker/pds/pds.env
+          mkdir -p .github/workflows/docker/pds
+
+          echo "PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}" > $PDS_ENV_FILE
+          echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> $PDS_ENV_FILE
+          echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> $PDS_ENV_FILE
+          echo "PDS_HOSTNAME=example.com" >> $PDS_ENV_FILE
+
+          # Values from https://code.modernleft.org/gravityfargo/bluesky-pds-docker/src/commit/2f574565d72d62fc47334cb9f5495b3f72ba91de/Dockerfile#L41-L54
+          echo "PDS_DATA_DIRECTORY=/pds" >> $PDS_ENV_FILE
+          echo "PDS_BLOBSTORE_DISK_LOCATION=/pds/blocks" >> $PDS_ENV_FILE
+          echo "PDS_BLOB_UPLOAD_LIMIT=52428800" >> $PDS_ENV_FILE
+          echo "PDS_DID_PLC_URL=https://plc.directory" >> $PDS_ENV_FILE
+          echo "PDS_BSKY_APP_VIEW_URL=https://api.bsky.app" >> $PDS_ENV_FILE
+          echo "PDS_BSKY_APP_VIEW_DID=did:web:api.bsky.app" >> $PDS_ENV_FILE
+          echo "PDS_REPORT_SERVICE_URL=https://mod.bsky.app" >> $PDS_ENV_FILE
+          echo "PDS_REPORT_SERVICE_DID=did:plc:ar7c4by46qjdydhdevvrndac" >> $PDS_ENV_FILE
+          echo "PDS_CRAWLERS=https://bsky.network" >> $PDS_ENV_FILE
+          echo "LOG_ENABLED=true" >> $PDS_ENV_FILE
+
+      - name: Generate a self-signed certificate for Traefik
+        run: |
+          # mkdir -p .github/workflows/docker/certs
+          openssl req -x509 -newkey rsa:4096 -sha256 -days 365 -nodes \
+            -keyout .github/workflows/docker/certs/traefik.key \
+            -out .github/workflows/docker/certs/traefik.crt \
+            -subj "/CN=example.com"
+
+      - name: Start services with Docker Compose
+        run: |
+          docker-compose -f .github/workflows/docker/docker-compose.yml up -d
+          PDS_CONTAINER_ID=$(docker-compose -f .github/workflows/docker/docker-compose.yml ps -q pds)
+          echo "PDS_CONTAINER_ID=$PDS_CONTAINER_ID" >> $GITHUB_ENV
+
+      - name: Install workflow dependencies and update CA certificates in the PDS container
+        run: |
+          # from https://code.modernleft.org/gravityfargo/bluesky-pds-docker/src/commit/2f574565d72d62fc47334cb9f5495b3f72ba91de/Dockerfile#L71
+          # dependencies for pdsadmin.sh, update-ca-certificates, and curl to fetch pdsadmin.sh
+          # coretools was needed for pdsadmin.sh because it uses rm --force which is not in alpine
+          docker exec $PDS_CONTAINER_ID apk add --no-cache bash coreutils dumb-init sudo curl ca-certificates gnupg jq openssl util-linux xxd sqlite
+          docker exec $PDS_CONTAINER_ID update-ca-certificates # trust the Traefik cert
+
+      - name: Download pdsadmin.sh
+        run: |
+          curl -fsSL -o pdsadmin.sh https://raw.githubusercontent.com/bluesky-social/pds/main/pdsadmin.sh
+
+          docker cp pdsadmin.sh $PDS_CONTAINER_ID:/pds/pdsadmin.sh
+          docker exec $PDS_CONTAINER_ID chmod +x /pds/pdsadmin.sh
+
+      - name: Spin wait for Traefik+PDS to be healthy
+        run: |
+          for i in {1..5}; do
+            STATUS=$(docker exec $PDS_CONTAINER_ID /bin/sh -c "curl -s -o /dev/null -w '%{http_code}' https://example.com/xrpc/_health" || true)
+            if [ "$STATUS" = "200" ]; then
+              echo "PDS is healthy!"
+              exit 0
+            fi
+            echo "Waiting for PDS... ($i/5)"
+            sleep 1
+          done
+          echo "PDS did not become healthy in time" >&2
+          docker exec $PDS_CONTAINER_ID /bin/sh -c "curl -v https://example.com/xrpc/_health" # output the error
+          exit 1
+
+      - name: Show Bluesky PDS container logs
+        run: |
+          docker logs $PDS_CONTAINER_ID
+
+      - name: Create admin account
+        run: |
+          OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/bash -c "/pds/pdsadmin.sh account create admin@example.com adminhandle.example.com")
+          echo "$OUTPUT"
+
+          HANDLE=$(echo "$OUTPUT" | grep '^Handle' | awk '{print $3}')
+          DID=$(echo "$OUTPUT" | grep '^DID' | awk '{print $3}')
+          PASSWORD=$(echo "$OUTPUT" | grep '^Password' | awk '{print $3}')
+          echo "ADMIN_HANDLE=$HANDLE" >> $GITHUB_ENV
+          echo "ADMIN_DID=$DID" >> $GITHUB_ENV
+          echo "ADMIN_PASSWORD=$PASSWORD" >> $GITHUB_ENV
+
+          if [ -z "$PASSWORD" ]; then
+            echo "ERROR: Password not found in pdsadmin output"
+            exit 1
+          fi
+
+      - name: Show Bluesky PDS container logs
+        run: |
+          docker logs $PDS_CONTAINER_ID
+
+      - name: Check admin environment variables
+        run: |
+          echo "ADMIN_HANDLE=$ADMIN_HANDLE"
+          echo "ADMIN_DID=$ADMIN_DID"
+          echo "ADMIN_PASSWORD=$ADMIN_PASSWORD"
+        env:
+          ADMIN_HANDLE: ${{ env.ADMIN_HANDLE }}
+          ADMIN_DID: ${{ env.ADMIN_DID }}
+          ADMIN_PASSWORD: ${{ env.ADMIN_PASSWORD }}
