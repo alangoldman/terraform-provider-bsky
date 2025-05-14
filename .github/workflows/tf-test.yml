@@ -29,49 +29,19 @@ jobs:
           echo "PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}" >> $GITHUB_ENV
           echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> $GITHUB_ENV
           echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> $GITHUB_ENV
-          echo "PDS_HOSTNAME=localhost" >> $GITHUB_ENV
+          echo "PDS_HOSTNAME=example.com" >> $GITHUB_ENV
 
       - name: Pull the Bluesky PDS Docker container
         run: |
           docker pull \
             gravityfargo/bluesky-pds:v0.4.107
 
-      - name: Write docker-compose.yml with Traefik # from https://docs.modernleft.org/Docker-Images/bluesky-pds#traefik
-        run: |
-          cat <<EOF > docker-compose.yml
-version: "3.8"
-services:
-  bluesky-pds:
-    image: code.modernleft.org/gravityfargo/bluesky-pds:v0.4.107
-    networks:
-      - proxy
-    environment:
-      PDS_JWT_SECRET: ${PDS_JWT_SECRET}
-      PDS_ADMIN_PASSWORD: ${PDS_ADMIN_PASSWORD}
-      PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: ${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}
-      PDS_HOSTNAME: localhost
-      EUID: 1000
-      EGID: 1000
-    volumes:
-      - ./bluesky-pds:/pds
-    labels:
-      traefik.enable: "true"
-      traefik.http.routers.bluesky-pds-insecure.entrypoints: http
-      traefik.http.routers.bluesky-pds-insecure.rule: HostRegexp(\`^.+\.localhost$\`) || Host(\`localhost\`)
-      traefik.http.routers.bluesky-pds-secure.entrypoints: https
-      traefik.http.routers.bluesky-pds-secure.rule: HostRegexp(\`^.+\.localhost$\`) || Host(\`localhost\`)
-      traefik.http.routers.bluesky-pds-secure.tls: "true"
-      traefik.http.services.bluesky-pds.loadbalancer.server.scheme: http
-      traefik.http.services.bluesky-pds.loadbalancer.server.port: 3000
-networks:
-  proxy:
-    driver: bridge
-EOF
-
-# CONTAINER_ID=$(docker run -d gravityfargo/bluesky-pds:v0.4.107)
       - name: Run Bluesky PDS Docker container
         run: |
-          CONTAINER_ID=$(docker-compose up -d)
+          CONTAINER_ID=$(docker run -d \
+            --hostname example.com \
+            --add-host example.com:127.0.0.1 \
+            gravityfargo/bluesky-pds:v0.4.107)
           echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
 
       - name: Create admin account
