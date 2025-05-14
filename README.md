@@ -28,7 +28,7 @@ Run the make file:
 ## Running the tests
 The make file will run the tests, they require the following environment variable pointing to a testing PDS:
 ```
-> BSKY_PDS_HOST=sodle.com
+> BSKY_PDS_HOST=scoott.blog
 > BSKY_HANDLE=root
 > BSKY_PASSWORD=*******
 > BSKY_PDS_ADMIN_PASSWORD=********
