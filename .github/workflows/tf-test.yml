@@ -38,7 +38,7 @@ jobs:
       - name: Run Bluesky PDS Docker container
         run: |
           docker run -d \
-            gravityfargo/bluesky-pds
+            gravityfargo/bluesky-pds:v0.4.107
 
       # - name: Wait for the container to be ready
       #   run: sleep 30
