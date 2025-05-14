@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up OpenSSL
         run: sudo apt-get install -y openssl
@@ -22,9 +22,10 @@ jobs:
       - name: Generate secrets
         run: |
           # Generate secret environment variables
-          echo PDS_ADMIN_PASSWORD: $(openssl rand --hex 16)
-          echo PDS_JWT_SECRET: $(openssl rand --hex 16)
-          echo PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: $(openssl ecparam --name secp256k1 --genkey --noout --outform DER | tail --bytes=+8 | head --bytes=32 | xxd --plain --cols 32)
+          export PDS_ADMIN_PASSWORD=$(openssl rand --hex 16)
+          export PDS_JWT_SECRET=$(openssl rand --hex 16)
+          export PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=$(openssl ecparam --name secp256k1 --genkey --noout --outform DER | tail --bytes=+8 | head --bytes=32 | xxd --plain --cols 32)
+
           echo "PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}" >> $GITHUB_ENV
           echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> $GITHUB_ENV
           echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> $GITHUB_ENV
@@ -32,7 +33,7 @@ jobs:
       - name: Pull the Bluesky PDS Docker container
         run: |
           docker pull \
-            gravityfargo/bluesky-pds
+            gravityfargo/bluesky-pds:v0.4.107
 
       - name: Run Bluesky PDS Docker container
         run: |
