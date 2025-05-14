@@ -40,7 +40,6 @@ jobs:
         run: |
           CONTAINER_ID=$(docker run -d \
             --hostname example.com \
-            --add-host example.com:0.0.0.0 \
             gravityfargo/bluesky-pds:v0.4.107)
           echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
 
