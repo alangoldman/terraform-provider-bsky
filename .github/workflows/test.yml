@@ -81,5 +81,41 @@ jobs:
       - run: go mod download
       - env:
           TF_ACC: "1"
-        run: go test -v -cover ./internal/provider/
+
+      - name: Set up OpenSSL
+        run: sudo apt-get install -y openssl
+
+      - name: Generate PDS secrets
+        run: |
+          # Generate secret environment variables
+          export PDS_ADMIN_PASSWORD=$(openssl rand --hex 16)
+          export PDS_JWT_SECRET=$(openssl rand --hex 16)
+          export PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=$(openssl ecparam --name secp256k1 --genkey --noout --outform DER | tail --bytes=+8 | head --bytes=32 | xxd --plain --cols 32)
+
+          echo "PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}" >> $GITHUB_ENV
+          echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> $GITHUB_ENV
+          echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> $GITHUB_ENV
+
+      - name: Pull the Bluesky PDS Docker container
+        run: |
+          docker pull \
+            gravityfargo/bluesky-pds:v0.4.107
+
+      - name: Run Bluesky PDS Docker container
+        run: |
+          docker run -d \
+            gravityfargo/bluesky-pds:v0.4.107
+
+      - name: Create admin account
+        run: |
+          docker exec bluesky-pds /bin/bash -c "echo -e 'admin@example.com\nadminhandle' | sudo pdsadmin account create"
+
+      - run: go test -v -cover ./internal/provider/
         timeout-minutes: 10
+        env:
+          BSKY_PDS_HOST: "testhost"
+          BSKY_HANDLE: 
+          BSKY_ADMIN_PASSWORD: ${PDS_ADMIN_PASSWORD}
+          TF_ACC: "1"
+          TF_LOG: "DEBUG"
+          TF_LOG_PATH: "./tf.log"

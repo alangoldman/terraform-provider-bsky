@@ -40,6 +40,11 @@ jobs:
           docker run -d \
             gravityfargo/bluesky-pds:v0.4.107
 
+      - name: Create admin account
+        run: |
+          docker exec bluesky-pds /bin/bash -c "echo -e 'admin@example.com\nadminhandle' | sudo pdsadmin account create"
+
+
       # - name: Wait for the container to be ready
       #   run: sleep 30
 
