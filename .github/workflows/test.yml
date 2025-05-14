@@ -103,8 +103,8 @@ jobs:
 
       - name: Run Bluesky PDS Docker container
         run: |
-          docker run -d \
-            gravityfargo/bluesky-pds:v0.4.107
+          CONTAINER_ID=$(docker run -d gravityfargo/bluesky-pds:v0.4.107)
+          echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
 
       - name: Create admin account
         run: |
