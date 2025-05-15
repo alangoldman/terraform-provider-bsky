@@ -29,11 +29,11 @@ jobs:
           export PDS_JWT_SECRET=$(openssl rand --hex 16)
           export PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=$(openssl ecparam --name secp256k1 --genkey --noout --outform DER | tail --bytes=+8 | head --bytes=32 | xxd --plain --cols 32)
 
-          mkdir -p ./pds
-          echo "PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}" > ./pds/pds.env
-          echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> ./pds/pds.env
-          echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> ./pds/pds.env
-          echo "PDS_HOSTNAME=${PDS_HOSTNAME}" >> ./pds/pds.env
+          mkdir -p .github/workflows/test/pds
+          echo "PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}" > .github/workflows/test/pds/pds.env
+          echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> .github/workflows/test/pds/pds.env
+          echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> .github/workflows/test/pds/pds.env
+          echo "PDS_HOSTNAME=${PDS_HOSTNAME}" >> .github/workflows/test/pds/pds.env
 
       - name: Start services with remote Docker Compose
         run: |
