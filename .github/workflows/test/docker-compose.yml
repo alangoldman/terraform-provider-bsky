@@ -1,6 +1,23 @@
-# From https://docs.modernleft.org/Docker-Images/bluesky-pds#traefik
+# Adapted from https://docs.modernleft.org/Docker-Images/bluesky-pds#traefik
 # Traefik Proxy
 services:
+    traefik:
+        image: traefik:v3.4.0
+        command:
+            - --api.insecure=true
+            - --providers.docker=true
+            - --providers.docker.exposedbydefault=false
+            - --entrypoints.http.address=:80
+            - --entrypoints.https.address=:443
+        ports:
+            - "80:80"
+            - "443:443"
+            - "8080:8080" # Traefik dashboard
+        networks:
+            - proxy
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+
     bluesky-pds:
         image: code.modernleft.org/gravityfargo/bluesky-pds:v0.4.107
         networks:
@@ -23,7 +40,11 @@ services:
             # traefik.http.routers.bluesky-pds-insecure.middlewares: BlueskyHeaders@file
             traefik.http.routers.bluesky-pds-secure.entrypoints: https
             traefik.http.routers.bluesky-pds-secure.rule: HostRegexp(`^.+\.example\.com$$`) || Host(`example.com`)
-            traefik.http.routers.bluesky-pds-secure.tls: "true"
+            traefik.http.routers.bluesky-pds-secure.tls: "false"
             traefik.http.services.bluesky-pds.loadbalancer.server.scheme: http
             traefik.http.services.bluesky-pds.loadbalancer.server.port: 3000
             # traefik.http.routers.bluesky-pds-secure.middlewares: BlueskyHeaders@file
+
+networks:
+    proxy:
+        driver: bridge

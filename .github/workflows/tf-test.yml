@@ -54,9 +54,8 @@ jobs:
       - name: Test PDS is healthy
         run: |
           docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v http://localhost:3000/xrpc/_health"
-
-      - name: https test
-        run: |
+          docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v http://example.com:3000/xrpc/_health"
+          docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v https://localhost/xrpc/_health"
           docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v https://example.com:3000/xrpc/_health"
 
       - name: Create admin account
