@@ -87,12 +87,12 @@ jobs:
 
       - name: Show Bluesky PDS container logs
         run: |
-          docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v https://example.com/xrpc/_health"
+          docker exec $PDS_CONTAINER_ID /bin/sh -c "curl -v https://example.com/xrpc/_health"
           docker logs $PDS_CONTAINER_ID
 
       - name: Create admin account
         run: |
-          OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/bash -c "sudo pdsadmin account create admin@example.com adminhandle.example.com")
+          OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/sh -c "sudo pdsadmin account create admin@example.com adminhandle.example.com")
           echo "$OUTPUT"
 
           HANDLE=$(echo "$OUTPUT" | grep '^Handle' | awk '{print $3}')
