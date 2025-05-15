@@ -1,6 +1,5 @@
-# Adapted from https://docs.modernleft.org/Docker-Images/bluesky-pds#traefik
-# Traefik Proxy
 services:
+    # Traefik container adapted from https://docs.modernleft.org/Docker-Images/bluesky-pds#traefik
     traefik:
         image: traefik:v3.4.0
         hostname: example.com # the Traefik container should be reachable at the hostname so pdsadmin hits the Traefik container
@@ -24,6 +23,7 @@ services:
             - ./certs/traefik.key:/certs/traefik.key:ro
             - ./certs/traefik-dynamic.yml:/certs/traefik-dynamic.yml:ro
 
+    # PDS container adapted from https://github.com/bluesky-social/pds/blob/main/compose.yaml#L17
     pds:
         image: ghcr.io/bluesky-social/pds:latest # use the latest tag from the repo
         networks:
