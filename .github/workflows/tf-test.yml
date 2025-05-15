@@ -36,6 +36,7 @@ jobs:
 
       - name: Generate self-signed certificate for Traefik
         run: |
+          # mkdir -p .github/workflows/test/certs
           openssl req -x509 -newkey rsa:4096 -sha256 -days 365 -nodes \
             -keyout .github/workflows/test/certs/traefik.key \
             -out .github/workflows/test/certs/traefik.crt \
