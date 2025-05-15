@@ -87,6 +87,13 @@ jobs:
         run: |
           docker logs $PDS_CONTAINER_ID
 
+      - name: Download pdsadmin.sh
+        run: |
+          curl -fsSL -o pdsadmin.sh https://raw.githubusercontent.com/bluesky-social/pds/main/pdsadmin.sh
+
+          docker cp pdsadmin.sh $PDS_CONTAINER_ID:/usr/local/bin/pdsadmin.sh
+          docker exec $PDS_CONTAINER_ID chmod +x /usr/local/bin/pdsadmin.sh
+
       - name: Create admin account
         run: |
           OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/sh -c "pdsadmin account create admin@example.com adminhandle.example.com")
