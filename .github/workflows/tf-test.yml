@@ -16,30 +16,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Compose
-        run: sudo apt-get install -y docker-compose
-
-      - name: Set up OpenSSL
-        run: sudo apt-get install -y openssl
-
-      - name: Generate secrets
+      - name: Download PDS installer.sh
         run: |
-          # Generate secret environment variables
-          export PDS_ADMIN_PASSWORD=$(openssl rand --hex 16)
-          export PDS_JWT_SECRET=$(openssl rand --hex 16)
-          export PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=$(openssl ecparam --name secp256k1 --genkey --noout --outform DER | tail --bytes=+8 | head --bytes=32 | xxd --plain --cols 32)
+          curl https://raw.githubusercontent.com/bluesky-social/pds/main/installer.sh > installer.sh
 
-          mkdir -p .github/workflows/test/pds
-          echo "PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}" > .github/workflows/test/pds/pds.env
-          echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> .github/workflows/test/pds/pds.env
-          echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> .github/workflows/test/pds/pds.env
-          echo "PDS_HOSTNAME=${PDS_HOSTNAME}" >> .github/workflows/test/pds/pds.env
-
-      - name: Start services with remote Docker Compose
+      - name: Run installer.sh
         run: |
-          docker-compose -f .github/workflows/test/docker-compose.yml up -d
-          CONTAINER_ID=$(docker-compose -f .github/workflows/test/docker-compose.yml ps -q pds)
-          echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
+          echo -e 'example.com\nadmin@example.com' | sudo bash installer.sh
 
       - name: Wait for the container to be ready
         run: sleep 5
