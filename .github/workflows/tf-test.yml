@@ -89,7 +89,7 @@ jobs:
 
       - name: Download pdsadmin.sh
         run: |
-          curl -fsSL -o pdsadmin.sh https://raw.githubusercontent.com/bluesky-social/pds/main/pdsadmin.sh
+          curl -fsSLv -o pdsadmin.sh https://raw.githubusercontent.com/bluesky-social/pds/main/pdsadmin.sh
           cat pdsadmin.sh | head -n 20 # show the first 20 lines of the script
 
           docker cp pdsadmin.sh $PDS_CONTAINER_ID:/usr/local/bin/pdsadmin.sh
