@@ -19,6 +19,24 @@ jobs:
       - name: Set up Docker Compose
         run: sudo apt-get install -y docker-compose
 
+      - name: Set up OpenSSL
+        run: sudo apt-get install -y openssl
+
+      - name: Generate secrets
+        run: |
+          # Generate secret environment variables
+          export PDS_ADMIN_PASSWORD=$(openssl rand --hex 16)
+          export PDS_JWT_SECRET=$(openssl rand --hex 16)
+          export PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=$(openssl ecparam --name secp256k1 --genkey --noout --outform DER | tail --bytes=+8 | head --bytes=32 | xxd --plain --cols 32)
+
+          mkdir -p /pds
+          cat <<EOF > /pds/pds.env
+PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}
+PDS_JWT_SECRET=${PDS_JWT_SECRET}
+PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}
+PDS_HOSTNAME=${PDS_HOSTNAME}
+EOF
+
       - name: Start services with remote Docker Compose
         run: |
           docker-compose -f .github/workflows/test/docker-compose.yml up -d
