@@ -36,7 +36,8 @@ jobs:
 
       - name: Start services with Docker Compose
         run: |
-          CONTAINER_ID=$(docker-compose -f .github/workflows/test/docker-compose.yml up -d)
+          docker-compose -f .github/workflows/test/docker-compose.yml up -d
+          CONTAINER_ID=$(docker-compose -f .github/workflows/test/docker-compose.yml ps -q bluesky-pds)
           echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
         env:
           PDS_ADMIN_PASSWORD: ${{ env.PDS_ADMIN_PASSWORD }}
