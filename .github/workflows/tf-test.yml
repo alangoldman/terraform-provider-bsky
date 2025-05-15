@@ -61,11 +61,10 @@ jobs:
         run: |
           docker-compose -f .github/workflows/docker/docker-compose.yml up -d
           CONTAINER_ID=$(docker-compose -f .github/workflows/docker/docker-compose.yml ps -q pds)
-          echo "CONTAINER_ID=$CONTAINER_ID"
           echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
 
-          docker exec $CONTAINER_ID cat /etc/os-release
-
+          docker exec $CONTAINER_ID apk add --no-cache ca-certificates
+          docker exec $CONTAINER_ID update-ca-certificates
           docker exec $CONTAINER_ID update-ca-certificates # trust the Traefik cert
 
       - name: Wait for the container to be healthy
