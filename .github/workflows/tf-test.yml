@@ -74,7 +74,7 @@ jobs:
 
       - name: Create admin account
         run: |
-          docker exec $PDS_CONTAINER_ID /bin/bash -c "echo -e 'admin@example.com\nadminhandle' | sudo pdsadmin account create"
+          docker exec $PDS_CONTAINER_ID /bin/bash -c "sudo pdsadmin account create admin@example.com adminhandle"
 
 
       # - name: Wait for the container to be ready
