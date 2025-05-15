@@ -40,15 +40,15 @@ jobs:
         run: |
           CONTAINER_ID=$(docker run -d \
             --hostname example.com \
+            -e PDS_HOSTNAME="${PDS_HOSTNAME}" \
+            -e PDS_ADMIN_PASSWORD="${PDS_ADMIN_PASSWORD}" \
+            -e PDS_JWT_SECRET="${PDS_JWT_SECRET}" \
+            -e PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX="${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" \
             gravityfargo/bluesky-pds:v0.4.107)
           echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
 
-      - name: Show Bluesky PDS container logs at startup
-        run: |
-          docker logs $PDS_CONTAINER_ID
-
       - name: Wait for the container to be ready
-        run: sleep 30
+        run: sleep 5
 
       - name: Show Bluesky PDS container logs if it exited
         run: |
@@ -56,7 +56,7 @@ jobs:
             docker logs $PDS_CONTAINER_ID || true
           fi
 
-      - name: Test PDS is running
+      - name: Test PDS is healthy
         run: |
           docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v http://localhost:3000/xrpc/_health"
 
