@@ -67,6 +67,7 @@ jobs:
         run: |
           # from https://code.modernleft.org/gravityfargo/bluesky-pds-docker/src/commit/2f574565d72d62fc47334cb9f5495b3f72ba91de/Dockerfile#L71
           # dependencies for pdsadmin.sh, update-ca-certificates, and curl to fetch pdsadmin.sh
+          # coretools was needed for pdsadmin.sh because it uses rm --force which is not in alpine
           docker exec $PDS_CONTAINER_ID apk add --no-cache bash coreutils dumb-init sudo curl ca-certificates gnupg jq openssl util-linux xxd sqlite
           docker exec $PDS_CONTAINER_ID update-ca-certificates # trust the Traefik cert
 
