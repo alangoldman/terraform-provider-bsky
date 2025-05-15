@@ -64,7 +64,6 @@ jobs:
           echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
 
           docker exec $CONTAINER_ID apk add --no-cache ca-certificates
-          docker exec $CONTAINER_ID update-ca-certificates
           docker exec $CONTAINER_ID update-ca-certificates # trust the Traefik cert
 
       - name: Wait for the container to be healthy
