@@ -62,24 +62,17 @@ jobs:
           docker-compose -f .github/workflows/docker/docker-compose.yml up -d
           CONTAINER_ID=$(docker-compose -f .github/workflows/docker/docker-compose.yml ps -q pds)
           echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
-          
-          docker exec $CONTAINER_ID ls -l /pds
-          docker exec $CONTAINER_ID cat /pds/pds.env
 
           docker exec $CONTAINER_ID apk add --no-cache ca-certificates
           docker exec $CONTAINER_ID update-ca-certificates # trust the Traefik cert
 
-      - name: Wait for the container to be healthy
-        run: sleep 5
-
-      - name: Show Bluesky PDS container logs
-        run: |
-          docker logs $PDS_CONTAINER_ID
-
       - name: Wait for Traefik to be healthy (spin wait)
         run: |
           for i in {1..5}; do
-            STATUS=$(docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -s -v -o /dev/null -w '%{http_code}' https://example.com/xrpc/_health" || true)
+            echo "Attempt $i: curl -v https://example.com/xrpc/_health"
+            OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v https://example.com/xrpc/_health" 2>&1)
+            echo "$OUTPUT"
+            STATUS=$(echo "$OUTPUT" | grep "< HTTP" | grep -oE '[0-9]{3}' | head -1)
             if [ "$STATUS" = "200" ]; then
               echo "PDS is healthy!"
               exit 0
@@ -89,6 +82,11 @@ jobs:
           done
           echo "PDS did not become healthy in time" >&2
           exit 1
+
+      - name: Show Bluesky PDS container logs
+        run: |
+          docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v https://example.com/xrpc/_health"
+          docker logs $PDS_CONTAINER_ID
 
       - name: Create admin account
         run: |
