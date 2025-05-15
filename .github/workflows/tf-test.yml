@@ -16,6 +16,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Docker Compose
+        run: sudo apt-get install -y docker-compose
+
       - name: Start services with remote Docker Compose
         run: |
           docker-compose -f https://github.com/bluesky-social/pds/raw/main/compose.yaml up -d
@@ -25,6 +28,11 @@ jobs:
       - name: Show Bluesky PDS container logs
         run: |
           docker logs $PDS_CONTAINER_ID
+
+      - name: Test PDS is healthy (from runner)
+        run: |
+          docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v https://caddy/xrpc/_health"
+        continue-on-error: true
 
       - name: Test PDS is healthy (http:3000)
         run: |
