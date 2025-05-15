@@ -1,0 +1,29 @@
+# From https://docs.modernleft.org/Docker-Images/bluesky-pds#traefik
+# Traefik Proxy
+services:
+    bluesky-pds:
+        image: code.modernleft.org/gravityfargo/bluesky-pds:v0.4.107
+        networks:
+            - proxy
+        environment:
+            PDS_JWT_SECRET: ...
+            PDS_ADMIN_PASSWORD: ...
+            PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: ...
+            PDS_HOSTNAME: example.com:3000
+            # PDS_EMAIL_SMTP_URL:
+            # PDS_EMAIL_FROM_ADDRESS:
+            EUID: 1000
+            EGID: 1000
+        volumes:
+            - ./bluesky-pds:/pds
+        labels:
+            traefik.enable: "true"
+            traefik.http.routers.bluesky-pds-insecure.entrypoints: http
+            traefik.http.routers.bluesky-pds-insecure.rule: HostRegexp(`^.+\.example\.com$`) || Host(`example.com`)
+            # traefik.http.routers.bluesky-pds-insecure.middlewares: BlueskyHeaders@file
+            traefik.http.routers.bluesky-pds-secure.entrypoints: https
+            traefik.http.routers.bluesky-pds-secure.rule: HostRegexp(`^.+\.example\.com$`) || Host(`example.com`)
+            traefik.http.routers.bluesky-pds-secure.tls: "true"
+            traefik.http.services.bluesky-pds.loadbalancer.server.scheme: http
+            traefik.http.services.bluesky-pds.loadbalancer.server.port: 3000
+            # traefik.http.routers.bluesky-pds-secure.middlewares: BlueskyHeaders@file

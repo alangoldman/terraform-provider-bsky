@@ -16,6 +16,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Docker Compose
+        run: sudo apt-get install -y docker-compose
+
       - name: Set up OpenSSL
         run: sudo apt-get install -y openssl
 
@@ -31,30 +34,22 @@ jobs:
           echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> $GITHUB_ENV
           echo "PDS_HOSTNAME=\b\b\b\b://example.com:3000" >> $GITHUB_ENV
 
-      - name: Pull the Bluesky PDS Docker container
+      - name: Start services with Docker Compose
         run: |
-          docker pull \
-            gravityfargo/bluesky-pds:v0.4.107
-
-      - name: Run Bluesky PDS Docker container
-        run: |
-          CONTAINER_ID=$(docker run -d \
-            --hostname example.com \
-            -e PDS_HOSTNAME="${PDS_HOSTNAME}" \
-            -e PDS_ADMIN_PASSWORD="${PDS_ADMIN_PASSWORD}" \
-            -e PDS_JWT_SECRET="${PDS_JWT_SECRET}" \
-            -e PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX="${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" \
-            gravityfargo/bluesky-pds:v0.4.107)
+          CONTAINER_ID=$(docker-compose -f .github/workflows/test/docker-compose.yml up -d)
           echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
+        env:
+          PDS_ADMIN_PASSWORD: ${{ env.PDS_ADMIN_PASSWORD }}
+          PDS_JWT_SECRET: ${{ env.PDS_JWT_SECRET }}
+          PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: ${{ env.PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX }}
+          PDS_HOSTNAME: ${{ env.PDS_HOSTNAME }}
 
       - name: Wait for the container to be ready
         run: sleep 5
 
-      - name: Show Bluesky PDS container logs if it exited
+      - name: Show Bluesky PDS container logs
         run: |
-          if [ -n "$PDS_CONTAINER_ID" ]; then
-            docker logs $PDS_CONTAINER_ID || true
-          fi
+          docker logs $PDS_CONTAINER_ID
 
       - name: Test PDS is healthy
         run: |
