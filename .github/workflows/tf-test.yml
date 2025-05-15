@@ -22,7 +22,7 @@ jobs:
       - name: Set up OpenSSL
         run: sudo apt-get install -y openssl
 
-      - name: Generate secrets
+      - name: Generate secrets and pds.env file
         run: |
           # Generate secret environment variables
           export PDS_ADMIN_PASSWORD=$(openssl rand --hex 16)
@@ -31,10 +31,23 @@ jobs:
 
           PDS_ENV_FILE=.github/workflows/docker/pds/pds.env
           mkdir -p .github/workflows/docker/pds
+
           echo "PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}" > $PDS_ENV_FILE
-          echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> $ENV_PDS_ENV_FILEFILE
+          echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> $PDS_ENV_FILE
           echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> $PDS_ENV_FILE
-          echo "PDS_HOSTNAME=${PDS_HOSTNAME}" >> $PDS_ENV_FILE
+          echo "PDS_HOSTNAME=example.com" > $PDS_ENV_FILE
+
+          # Values from https://code.modernleft.org/gravityfargo/bluesky-pds-docker/src/commit/2f574565d72d62fc47334cb9f5495b3f72ba91de/Dockerfile#L41-L54
+          echo "PDS_DATA_DIRECTORY=/pds" >> $PDS_ENV_FILE
+          echo "PDS_BLOBSTORE_DISK_LOCATION=/pds/blocks" >> $PDS_ENV_FILE
+          echo "PDS_BLOB_UPLOAD_LIMIT=52428800" >> $PDS_ENV_FILE
+          echo "PDS_DID_PLC_URL=https://plc.directory" >> $PDS_ENV_FILE
+          echo "PDS_BSKY_APP_VIEW_URL=https://api.bsky.app" >> $PDS_ENV_FILE
+          echo "PDS_BSKY_APP_VIEW_DID=did:web:api.bsky.app" >> $PDS_ENV_FILE
+          echo "PDS_REPORT_SERVICE_URL=https://mod.bsky.app" >> $PDS_ENV_FILE
+          echo "PDS_REPORT_SERVICE_DID=did:plc:ar7c4by46qjdydhdevvrndac" >> $PDS_ENV_FILE
+          echo "PDS_CRAWLERS=https://bsky.network" >> $PDS_ENV_FILE
+          echo "LOG_ENABLED=true" >> $PDS_ENV_FILE
 
       - name: Generate self-signed certificate for Traefik
         run: |
