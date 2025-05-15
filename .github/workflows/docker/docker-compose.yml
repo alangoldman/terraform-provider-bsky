@@ -24,23 +24,18 @@ services:
             - ./certs/traefik.key:/certs/traefik.key:ro
             - ./certs/traefik-dynamic.yml:/certs/traefik-dynamic.yml:ro
 
-    bluesky-pds:
-        image: code.modernleft.org/gravityfargo/bluesky-pds:v0.4.107
+    pds:
+        image: ghcr.io/bluesky-social/pds:latest # use the latest tag from the repo
         networks:
             - proxy
-        environment:
-            # environment variables are passed in by the workflow
-            PDS_ADMIN_PASSWORD: ${PDS_ADMIN_PASSWORD}
-            PDS_JWT_SECRET: ${PDS_JWT_SECRET}
-            PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: ${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}
-            PDS_HOSTNAME: ${PDS_HOSTNAME}
-            # PDS_EMAIL_SMTP_URL:
-            # PDS_EMAIL_FROM_ADDRESS:
-            EUID: 1000
-            EGID: 1000
+        env_file:
+            - ./pds/pds.env
         volumes:
             - ./bluesky-pds:/pds
             - ./certs/traefik.crt:/usr/local/share/ca-certificates/traefik.crt:ro
+            - type: bind
+                source: ./pds
+                target: ./pds
         labels:
             traefik.enable: "true"
             traefik.http.routers.bluesky-pds-secure.entrypoints: https
