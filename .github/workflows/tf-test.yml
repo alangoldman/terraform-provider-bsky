@@ -30,7 +30,6 @@ jobs:
           echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> $GITHUB_ENV
           echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> $GITHUB_ENV
           echo "PDS_HOSTNAME=example.com" >> $GITHUB_ENV
-          echo "PDS_PORT=443" >> $GITHUB_ENV
 
       - name: Pull the Bluesky PDS Docker container
         run: |
@@ -43,6 +42,10 @@ jobs:
             --hostname example.com \
             gravityfargo/bluesky-pds:v0.4.107)
           echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
+
+      - name: Test PDS is running
+        run: |
+          docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v http://localhost:3000/xrpc/xrpc/_health"
 
       - name: Create admin account
         run: |
