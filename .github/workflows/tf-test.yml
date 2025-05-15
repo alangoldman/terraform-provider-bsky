@@ -16,11 +16,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Compose
-        run: sudo apt-get install -y docker-compose
-
-      - name: Set up OpenSSL
-        run: sudo apt-get install -y openssl
+      - name: Set up Workflow dependencies
+        run: sudo apt-get install -y docker-compose openssl
 
       - name: Generate secrets and create pds.env
         run: |
@@ -49,7 +46,7 @@ jobs:
           echo "PDS_CRAWLERS=https://bsky.network" >> $PDS_ENV_FILE
           echo "LOG_ENABLED=true" >> $PDS_ENV_FILE
 
-      - name: Generate self-signed certificate for Traefik
+      - name: Generate a self-signed certificate for Traefik
         run: |
           # mkdir -p .github/workflows/docker/certs
           openssl req -x509 -newkey rsa:4096 -sha256 -days 365 -nodes \
