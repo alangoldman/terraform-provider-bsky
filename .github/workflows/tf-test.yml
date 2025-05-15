@@ -62,6 +62,9 @@ jobs:
           docker-compose -f .github/workflows/docker/docker-compose.yml up -d
           CONTAINER_ID=$(docker-compose -f .github/workflows/docker/docker-compose.yml ps -q pds)
           echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
+          
+          docker exec $CONTAINER_ID ls -l /pds
+          docker exec $CONTAINER_ID cat /pds/pds.env
 
           #docker exec $CONTAINER_ID apk add --no-cache ca-certificates
           #docker exec $CONTAINER_ID update-ca-certificates # trust the Traefik cert
