@@ -33,9 +33,7 @@ services:
         volumes:
             - ./bluesky-pds:/pds
             - ./certs/traefik.crt:/usr/local/share/ca-certificates/traefik.crt:ro
-            - type: bind
-                source: ./pds
-                target: ./pds
+            - ./pds:/pds
         labels:
             traefik.enable: "true"
             traefik.http.routers.bluesky-pds-secure.entrypoints: https
