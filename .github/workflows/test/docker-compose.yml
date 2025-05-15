@@ -19,10 +19,10 @@ services:
         labels:
             traefik.enable: "true"
             traefik.http.routers.bluesky-pds-insecure.entrypoints: http
-            traefik.http.routers.bluesky-pds-insecure.rule: HostRegexp(`^.+\.example\.com$`) || Host(`example.com`)
+            traefik.http.routers.bluesky-pds-insecure.rule: HostRegexp(`^.+\.example\.com$$`) || Host(`example.com`)
             # traefik.http.routers.bluesky-pds-insecure.middlewares: BlueskyHeaders@file
             traefik.http.routers.bluesky-pds-secure.entrypoints: https
-            traefik.http.routers.bluesky-pds-secure.rule: HostRegexp(`^.+\.example\.com$`) || Host(`example.com`)
+            traefik.http.routers.bluesky-pds-secure.rule: HostRegexp(`^.+\.example\.com$$`) || Host(`example.com`)
             traefik.http.routers.bluesky-pds-secure.tls: "true"
             traefik.http.services.bluesky-pds.loadbalancer.server.scheme: http
             traefik.http.services.bluesky-pds.loadbalancer.server.port: 3000
