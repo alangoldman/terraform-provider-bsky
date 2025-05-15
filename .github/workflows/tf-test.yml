@@ -44,6 +44,7 @@ jobs:
             -e PDS_ADMIN_PASSWORD="${PDS_ADMIN_PASSWORD}" \
             -e PDS_JWT_SECRET="${PDS_JWT_SECRET}" \
             -e PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX="${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" \
+            -e CURL_CA_BUNDLE="" \
             gravityfargo/bluesky-pds:v0.4.107)
           echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
 
@@ -59,6 +60,10 @@ jobs:
       - name: Test PDS is healthy
         run: |
           docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v http://localhost:3000/xrpc/_health"
+
+      - name: https test
+        run: |
+          docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v https://localhost:3000/xrpc/_health"
 
       - name: Create admin account
         run: |
