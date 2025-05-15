@@ -34,6 +34,13 @@ jobs:
           echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> $GITHUB_ENV
           echo "PDS_HOSTNAME=example.com" >> $GITHUB_ENV
 
+      - name: Generate self-signed certificate for Traefik
+        run: |
+          openssl req -x509 -newkey rsa:4096 -sha256 -days 365 -nodes \
+            -keyout .github/workflows/test/certs/traefik.key \
+            -out .github/workflows/test/certs/traefik.crt \
+            -subj "/CN=example.com"
+
       - name: Start services with Docker Compose
         run: |
           docker-compose -f .github/workflows/test/docker-compose.yml up -d
@@ -51,6 +58,10 @@ jobs:
       - name: Show Bluesky PDS container logs
         run: |
           docker logs $PDS_CONTAINER_ID
+
+      - name: Trust Traefik self-signed cert in bluesky-pds
+        run: |
+          docker exec $PDS_CONTAINER_ID update-ca-certificates
 
       - name: Test PDS is healthy (http:3000)
         run: |
