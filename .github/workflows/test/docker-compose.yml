@@ -1,8 +1,9 @@
-# From https://github.com/bluesky-social/pds/blob/main/compose.yaml
+# Adapted from https://github.com/bluesky-social/pds/blob/main/compose.yaml
 version: '3.9'
 services:
   caddy:
     container_name: caddy
+    hostname: example.com # the Caddy container should be reachable at the hostname so pdsadmin hits the reverse proxy
     image: caddy:2
     network_mode: host
     depends_on:
@@ -25,7 +26,7 @@ services:
         source: /pds
         target: /pds
     env_file:
-      - /pds/pds.env
+      - ./pds/pds.env
   watchtower:
     container_name: watchtower
     image: containrrr/watchtower:latest
