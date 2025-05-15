@@ -70,7 +70,7 @@ jobs:
         run: |
           for i in {1..5}; do
             echo "Attempt $i: curl -v https://example.com/xrpc/_health"
-            OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v https://example.com/xrpc/_health" 2>&1)
+            OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/sh -c "curl -v https://example.com/xrpc/_health" 2>&1)
             echo "$OUTPUT"
             STATUS=$(echo "$OUTPUT" | grep "< HTTP" | grep -oE '[0-9]{3}' | head -1)
             if [ "$STATUS" = "200" ]; then
