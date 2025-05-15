@@ -66,8 +66,8 @@ jobs:
           docker exec $CONTAINER_ID ls -l /pds
           docker exec $CONTAINER_ID cat /pds/pds.env
 
-          #docker exec $CONTAINER_ID apk add --no-cache ca-certificates
-          #docker exec $CONTAINER_ID update-ca-certificates # trust the Traefik cert
+          docker exec $CONTAINER_ID apk add --no-cache ca-certificates
+          docker exec $CONTAINER_ID update-ca-certificates # trust the Traefik cert
 
       - name: Wait for the container to be healthy
         run: sleep 5
