@@ -22,7 +22,7 @@ jobs:
       - name: Set up OpenSSL
         run: sudo apt-get install -y openssl
 
-      - name: Generate secrets and pds.env file
+      - name: Generate secrets and create pds.env
         run: |
           # Generate secret environment variables
           export PDS_ADMIN_PASSWORD=$(openssl rand --hex 16)
@@ -35,7 +35,7 @@ jobs:
           echo "PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}" > $PDS_ENV_FILE
           echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> $PDS_ENV_FILE
           echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> $PDS_ENV_FILE
-          echo "PDS_HOSTNAME=example.com" > $PDS_ENV_FILE
+          echo "PDS_HOSTNAME=example.com" >> $PDS_ENV_FILE
 
           # Values from https://code.modernleft.org/gravityfargo/bluesky-pds-docker/src/commit/2f574565d72d62fc47334cb9f5495b3f72ba91de/Dockerfile#L41-L54
           echo "PDS_DATA_DIRECTORY=/pds" >> $PDS_ENV_FILE
