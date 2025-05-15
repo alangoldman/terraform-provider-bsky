@@ -65,7 +65,8 @@ jobs:
 
       - name: Install workflow dependencies and update CA certificates
         run: |
-          docker exec $PDS_CONTAINER_ID apk add --no-cache bash ca-certificates curl # bash is needed for pdsadmin.sh
+          # bash and openssl are needed for pdsadmin.sh
+          docker exec $PDS_CONTAINER_ID apk add --no-cache bash ca-certificates curl openssl
           docker exec $PDS_CONTAINER_ID update-ca-certificates # trust the Traefik cert
 
       - name: Spin wait for Traefik+PDS to be healthy
