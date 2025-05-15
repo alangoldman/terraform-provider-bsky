@@ -64,6 +64,7 @@ jobs:
           echo "PDS_CONTAINER_ID=$PDS_CONTAINER_ID" >> $GITHUB_ENV
 
       - name: Install workflow dependencies and update CA certificates
+        run: |
           docker exec $PDS_CONTAINER_ID apk add --no-cache ca-certificates curl
           docker exec $PDS_CONTAINER_ID update-ca-certificates # trust the Traefik cert
 
