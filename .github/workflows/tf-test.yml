@@ -65,8 +65,9 @@ jobs:
 
       - name: Install workflow dependencies and update CA certificates in the PDS container
         run: |
-          # bash, jq, and openssl are needed for pdsadmin.sh
-          docker exec $PDS_CONTAINER_ID apk add --no-cache bash ca-certificates curl jq openssl
+          # from https://code.modernleft.org/gravityfargo/bluesky-pds-docker/src/commit/2f574565d72d62fc47334cb9f5495b3f72ba91de/Dockerfile#L71
+          # dependencies for pdsadmin.sh, update-ca-certificates, and curl to fetch pdsadmin.sh
+          docker exec $PDS_CONTAINER_ID apk add --no-cache bash dumb-init sudo curl ca-certificates gnupg jq openssl util-linux xxd sqlite
           docker exec $PDS_CONTAINER_ID update-ca-certificates # trust the Traefik cert
 
       - name: Spin wait for Traefik+PDS to be healthy
@@ -97,7 +98,7 @@ jobs:
 
       - name: Create admin account
         run: |
-          OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/sh -c "/pds/pdsadmin.sh account create admin@example.com adminhandle.example.com")
+          OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/bash -c "/pds/pdsadmin.sh account create admin@example.com adminhandle.example.com")
           echo "$OUTPUT"
 
           HANDLE=$(echo "$OUTPUT" | grep '^Handle' | awk '{print $3}')
