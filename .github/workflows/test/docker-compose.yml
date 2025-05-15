@@ -3,6 +3,7 @@
 services:
     traefik:
         image: traefik:v3.4.0
+        hostname: example.com # the Traefik container should be reachable at the hostname so pdsadmin hits the Traefik container
         command:
             - --api.insecure=true
             - --providers.docker=true
@@ -20,7 +21,6 @@ services:
 
     bluesky-pds:
         image: code.modernleft.org/gravityfargo/bluesky-pds:v0.4.107
-        hostname: example.com
         networks:
             - proxy
         environment:

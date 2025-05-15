@@ -52,11 +52,12 @@ jobs:
         run: |
           docker logs $PDS_CONTAINER_ID
 
-      - name: Test PDS is healthy
+      - name: Test PDS is healthy (http:3000)
         run: |
           docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v http://localhost:3000/xrpc/_health"
-          docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v http://example.com:3000/xrpc/_health"
-          docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v https://localhost/xrpc/_health"
+
+      - name: Test Traefik is healthy (https)
+        run: |
           docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v https://example.com/xrpc/_health"
 
       - name: Create admin account
