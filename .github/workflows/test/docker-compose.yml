@@ -20,6 +20,7 @@ services:
 
     bluesky-pds:
         image: code.modernleft.org/gravityfargo/bluesky-pds:v0.4.107
+        hostname: example.com
         networks:
             - proxy
         environment:
