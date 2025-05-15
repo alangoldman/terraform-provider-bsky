@@ -91,12 +91,12 @@ jobs:
         run: |
           curl -fsSL -o pdsadmin.sh https://raw.githubusercontent.com/bluesky-social/pds/main/pdsadmin.sh
 
-          docker cp pdsadmin.sh $PDS_CONTAINER_ID:/usr/local/bin/pdsadmin
-          docker exec $PDS_CONTAINER_ID chmod +x /usr/local/bin/pdsadmin
+          docker cp pdsadmin.sh $PDS_CONTAINER_ID:/pds/pdsadmin.sh
+          docker exec $PDS_CONTAINER_ID chmod +x /pds/pdsadmin.sh
 
       - name: Create admin account
         run: |
-          OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/sh -c "pdsadmin account create admin@example.com adminhandle.example.com")
+          OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/sh -c "/pds/pdsadmin.sh account create admin@example.com adminhandle.example.com")
           echo "$OUTPUT"
 
           HANDLE=$(echo "$OUTPUT" | grep '^Handle' | awk '{print $3}')
