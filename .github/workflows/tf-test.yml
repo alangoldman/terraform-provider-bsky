@@ -29,10 +29,12 @@ jobs:
           export PDS_JWT_SECRET=$(openssl rand --hex 16)
           export PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=$(openssl ecparam --name secp256k1 --genkey --noout --outform DER | tail --bytes=+8 | head --bytes=32 | xxd --plain --cols 32)
 
-          echo "PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}" >> $GITHUB_ENV
-          echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> $GITHUB_ENV
-          echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> $GITHUB_ENV
-          echo "PDS_HOSTNAME=example.com" >> $GITHUB_ENV
+          PDS_ENV_FILE=.github/workflows/docker/pds/pds.env
+          mkdir -p .github/workflows/docker/pds
+          echo "PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}" > $PDS_ENV_FILE
+          echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> $ENV_PDS_ENV_FILEFILE
+          echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> $PDS_ENV_FILE
+          echo "PDS_HOSTNAME=${PDS_HOSTNAME}" >> $PDS_ENV_FILE
 
       - name: Generate self-signed certificate for Traefik
         run: |
@@ -49,11 +51,13 @@ jobs:
           echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
 
           docker exec $CONTAINER_ID update-ca-certificates # trust the Traefik cert
-        env:
-          PDS_ADMIN_PASSWORD: ${{ env.PDS_ADMIN_PASSWORD }}
-          PDS_JWT_SECRET: ${{ env.PDS_JWT_SECRET }}
-          PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: ${{ env.PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX }}
-          PDS_HOSTNAME: ${{ env.PDS_HOSTNAME }}
+
+      - name: Wait for the container to be healthy
+        run: sleep 5
+
+      - name: Show Bluesky PDS container logs
+        run: |
+          docker logs $PDS_CONTAINER_ID
 
       - name: Wait for Traefik to be healthy (spin wait)
         run: |
@@ -68,10 +72,6 @@ jobs:
           done
           echo "PDS did not become healthy in time" >&2
           exit 1
-
-      - name: Show Bluesky PDS container logs
-        run: |
-          docker logs $PDS_CONTAINER_ID
 
       - name: Create admin account
         run: |

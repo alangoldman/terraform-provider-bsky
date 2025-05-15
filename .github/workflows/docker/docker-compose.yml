@@ -31,9 +31,8 @@ services:
         env_file:
             - ./pds/pds.env
         volumes:
-            - ./bluesky-pds:/pds
-            - ./certs/traefik.crt:/usr/local/share/ca-certificates/traefik.crt:ro
             - ./pds:/pds
+            - ./certs/traefik.crt:/usr/local/share/ca-certificates/traefik.crt:ro
         labels:
             traefik.enable: "true"
             traefik.http.routers.bluesky-pds-secure.entrypoints: https
