@@ -1,0 +1,84 @@
+name: Test Bluesky Provider
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      #- name: Set up Docker Compose
+        #run: sudo apt-get install -y docker-compose
+
+      - name: Set up OpenSSL
+        run: sudo apt-get install -y openssl
+
+      - name: Generate secrets
+        run: |
+          # Generate secret environment variables
+          export PDS_ADMIN_PASSWORD=$(openssl rand --hex 16)
+          export PDS_JWT_SECRET=$(openssl rand --hex 16)
+          export PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=$(openssl ecparam --name secp256k1 --genkey --noout --outform DER | tail --bytes=+8 | head --bytes=32 | xxd --plain --cols 32)
+
+          echo "PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}" >> $GITHUB_ENV
+          echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> $GITHUB_ENV
+          echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> $GITHUB_ENV
+          echo "PDS_HOSTNAME=example.com" >> $GITHUB_ENV
+
+      - name: Start services with Docker Compose
+        run: |
+          docker-compose -f .github/workflows/test/docker-compose.yml up -d
+          CONTAINER_ID=$(docker-compose -f .github/workflows/test/docker-compose.yml ps -q bluesky-pds)
+          echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
+        env:
+          PDS_ADMIN_PASSWORD: ${{ env.PDS_ADMIN_PASSWORD }}
+          PDS_JWT_SECRET: ${{ env.PDS_JWT_SECRET }}
+          PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: ${{ env.PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX }}
+          PDS_HOSTNAME: ${{ env.PDS_HOSTNAME }}
+
+      - name: Wait for the container to be ready
+        run: sleep 5
+
+      - name: Show Bluesky PDS container logs
+        run: |
+          docker logs $PDS_CONTAINER_ID
+
+      - name: Test PDS is healthy (http:3000)
+        run: |
+          docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v http://localhost:3000/xrpc/_health"
+        continue-on-error: true
+
+      - name: Test Traefik is healthy (https)
+        run: |
+          docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v https://example.com/xrpc/_health"
+        continue-on-error: true
+
+      - name: Create admin account
+        run: |
+          docker exec $PDS_CONTAINER_ID /bin/bash -c "echo -e 'admin@example.com\nadminhandle' | sudo pdsadmin account create"
+
+
+      # - name: Wait for the container to be ready
+      #   run: sleep 30
+
+      # - name: Run Terraform Init
+      #   run: |
+      #     terraform init
+
+      # - name: Run Terraform Apply
+      #   run: |
+      #     terraform apply -auto-approve
+
+      # - name: Clean up
+      #   run: |
+      #     docker stop $(docker ps -q --filter ancestor=gravityfargo/bluesky-pds:latest)
+      #     docker rm $(docker ps -aq --filter ancestor=gravityfargo/bluesky-pds:latest)
