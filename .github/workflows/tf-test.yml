@@ -68,6 +68,13 @@ jobs:
           docker exec $PDS_CONTAINER_ID apk add --no-cache bash coreutils dumb-init sudo curl ca-certificates gnupg jq openssl util-linux xxd sqlite
           docker exec $PDS_CONTAINER_ID update-ca-certificates # trust the Traefik cert
 
+      - name: Download pdsadmin.sh
+        run: |
+          curl -fsSL -o pdsadmin.sh https://raw.githubusercontent.com/bluesky-social/pds/main/pdsadmin.sh
+
+          docker cp pdsadmin.sh $PDS_CONTAINER_ID:/pds/pdsadmin.sh
+          docker exec $PDS_CONTAINER_ID chmod +x /pds/pdsadmin.sh
+
       - name: Spin wait for Traefik+PDS to be healthy
         run: |
           for i in {1..5}; do
@@ -87,13 +94,6 @@ jobs:
         run: |
           docker logs $PDS_CONTAINER_ID
 
-      - name: Download pdsadmin.sh
-        run: |
-          curl -fsSL -o pdsadmin.sh https://raw.githubusercontent.com/bluesky-social/pds/main/pdsadmin.sh
-
-          docker cp pdsadmin.sh $PDS_CONTAINER_ID:/pds/pdsadmin.sh
-          docker exec $PDS_CONTAINER_ID chmod +x /pds/pdsadmin.sh
-
       - name: Create admin account
         run: |
           OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/bash -c "/pds/pdsadmin.sh account create admin@example.com adminhandle.example.com")
@@ -110,13 +110,3 @@ jobs:
             echo "ERROR: Password not found in pdsadmin output"
             exit 1
           fi
-
-      - name: Check admin environment variables
-        run: |
-          echo "ADMIN_HANDLE=$ADMIN_HANDLE"
-          echo "ADMIN_DID=$ADMIN_DID"
-          echo "ADMIN_PASSWORD=$ADMIN_PASSWORD"
-        env:
-          ADMIN_HANDLE: ${{ env.ADMIN_HANDLE }}
-          ADMIN_DID: ${{ env.ADMIN_DID }}
-          ADMIN_PASSWORD: ${{ env.ADMIN_PASSWORD }}
