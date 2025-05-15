@@ -96,7 +96,7 @@ jobs:
 
       - name: Create admin account
         run: |
-          OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/sh -c "pdsadmin account create admin@example.com adminhandle.example.com")
+          OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/sh -c "/usr/local/bin/pdsadmin.sh account create admin@example.com adminhandle.example.com")
           echo "$OUTPUT"
 
           HANDLE=$(echo "$OUTPUT" | grep '^Handle' | awk '{print $3}')
