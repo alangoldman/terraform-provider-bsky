@@ -10,6 +10,12 @@ services:
             - --providers.docker.exposedbydefault=false
             - --entrypoints.http.address=:80
             - --entrypoints.https.address=:443
+            - --certificatesresolvers.default.acme.tlschallenge=true
+            - --certificatesresolvers.default.acme.email=admin@example.com
+            - --certificatesresolvers.default.acme.storage=/certs/acme.json
+            - --providers.file.directory=/certs
+            - --providers.file.watch=true
+            - --providers.file.filename=/certs/traefik-dynamic.yml
         ports:
             - "80:80"
             - "443:443"
@@ -20,6 +26,7 @@ services:
             - /var/run/docker.sock:/var/run/docker.sock:ro
             - ./certs/traefik.crt:/certs/traefik.crt:ro
             - ./certs/traefik.key:/certs/traefik.key:ro
+            - ./certs/traefik-dynamic.yml:/certs/traefik-dynamic.yml:ro
 
     bluesky-pds:
         image: code.modernleft.org/gravityfargo/bluesky-pds:v0.4.107
@@ -37,6 +44,7 @@ services:
             EGID: 1000
         volumes:
             - ./bluesky-pds:/pds
+            - ./certs/traefik.crt:/usr/local/share/ca-certificates/traefik.crt:ro
         labels:
             traefik.enable: "true"
             traefik.http.routers.bluesky-pds-insecure.entrypoints: http
