@@ -48,7 +48,7 @@ jobs:
           CONTAINER_ID=$(docker-compose -f .github/workflows/docker/docker-compose.yml ps -q bluesky-pds)
           echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
 
-          #docker exec $CONTAINER_ID update-ca-certificates # trust the Traefik cert
+          docker exec $CONTAINER_ID update-ca-certificates # trust the Traefik cert
         env:
           PDS_ADMIN_PASSWORD: ${{ env.PDS_ADMIN_PASSWORD }}
           PDS_JWT_SECRET: ${{ env.PDS_JWT_SECRET }}
