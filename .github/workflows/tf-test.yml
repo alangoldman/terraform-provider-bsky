@@ -29,7 +29,7 @@ jobs:
           echo "PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}" >> $GITHUB_ENV
           echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> $GITHUB_ENV
           echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> $GITHUB_ENV
-          echo "PDS_HOSTNAME=example.com:3000" >> $GITHUB_ENV
+          echo "PDS_HOSTNAME=\b\b\b\b://example.com:3000" >> $GITHUB_ENV
 
       - name: Pull the Bluesky PDS Docker container
         run: |
@@ -44,7 +44,6 @@ jobs:
             -e PDS_ADMIN_PASSWORD="${PDS_ADMIN_PASSWORD}" \
             -e PDS_JWT_SECRET="${PDS_JWT_SECRET}" \
             -e PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX="${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" \
-            -e CURL_CA_BUNDLE="" \
             gravityfargo/bluesky-pds:v0.4.107)
           echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
 
@@ -63,7 +62,7 @@ jobs:
 
       - name: https test
         run: |
-          docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v https://localhost:3000/xrpc/_health"
+          docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -v https://example.com:3000/xrpc/_health"
 
       - name: Create admin account
         run: |
