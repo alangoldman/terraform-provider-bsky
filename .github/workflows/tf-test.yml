@@ -58,7 +58,7 @@ jobs:
       - name: Wait for Traefik to be healthy (spin wait)
         run: |
           for i in {1..5}; do
-            STATUS=$(docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -s -o /dev/null -w '%{http_code}' https://example.com/xrpc/_health" || true)
+            STATUS=$(docker exec $PDS_CONTAINER_ID /bin/bash -c "curl -s -v -o /dev/null -w '%{http_code}' https://example.com/xrpc/_health" || true)
             if [ "$STATUS" = "200" ]; then
               echo "PDS is healthy!"
               exit 0
@@ -83,6 +83,11 @@ jobs:
           echo "ADMIN_HANDLE=$HANDLE" >> $GITHUB_ENV
           echo "ADMIN_DID=$DID" >> $GITHUB_ENV
           echo "ADMIN_PASSWORD=$PASSWORD" >> $GITHUB_ENV
+
+          if [ -z "$PASSWORD" ]; then
+            echo "ERROR: Password not found in pdsadmin output"
+            exit 1
+          fi
 
       - name: Check admin environment variables
         run: |
