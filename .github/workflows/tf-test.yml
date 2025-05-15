@@ -93,6 +93,8 @@ jobs:
 
           docker cp pdsadmin.sh $PDS_CONTAINER_ID:/pds/pdsadmin.sh
           docker exec $PDS_CONTAINER_ID chmod +x /pds/pdsadmin.sh
+          
+          docker exec $PDS_CONTAINER_ID ls -l /pds || echo "/pds does not exist"
 
       - name: Create admin account
         run: |
