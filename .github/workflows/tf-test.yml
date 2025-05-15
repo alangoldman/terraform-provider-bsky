@@ -63,10 +63,10 @@ jobs:
           PDS_CONTAINER_ID=$(docker-compose -f .github/workflows/docker/docker-compose.yml ps -q pds)
           echo "PDS_CONTAINER_ID=$PDS_CONTAINER_ID" >> $GITHUB_ENV
 
-      - name: Install workflow dependencies and update CA certificates
+      - name: Install workflow dependencies and update CA certificates in the PDS container
         run: |
-          # bash and openssl are needed for pdsadmin.sh
-          docker exec $PDS_CONTAINER_ID apk add --no-cache bash ca-certificates curl openssl
+          # bash, jq, and openssl are needed for pdsadmin.sh
+          docker exec $PDS_CONTAINER_ID apk add --no-cache bash ca-certificates curl jq openssl
           docker exec $PDS_CONTAINER_ID update-ca-certificates # trust the Traefik cert
 
       - name: Spin wait for Traefik+PDS to be healthy
@@ -94,8 +94,6 @@ jobs:
 
           docker cp pdsadmin.sh $PDS_CONTAINER_ID:/pds/pdsadmin.sh
           docker exec $PDS_CONTAINER_ID chmod +x /pds/pdsadmin.sh
-          
-          docker exec $PDS_CONTAINER_ID ls -l /pds || echo "/pds does not exist"
 
       - name: Create admin account
         run: |
