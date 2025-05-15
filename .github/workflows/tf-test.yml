@@ -71,10 +71,7 @@ jobs:
       - name: Spin wait for Traefik+PDS to be healthy
         run: |
           for i in {1..5}; do
-            echo "Attempt $i: curl -v https://example.com/xrpc/_health"
-            OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/sh -c "curl -v https://example.com/xrpc/_health" 2>&1)
-            echo "$OUTPUT"
-            STATUS=$(echo "$OUTPUT" | grep "< HTTP" | grep -oE '[0-9]{3}' | head -1)
+            STATUS=$(docker exec $PDS_CONTAINER_ID /bin/sh -c "curl -s -o /dev/null -w '%{http_code}' https://example.com/xrpc/_health" || true)
             if [ "$STATUS" = "200" ]; then
               echo "PDS is healthy!"
               exit 0
@@ -83,16 +80,16 @@ jobs:
             sleep 1
           done
           echo "PDS did not become healthy in time" >&2
+          docker exec $PDS_CONTAINER_ID /bin/sh -c "curl -v https://example.com/xrpc/_health" # output the error
           exit 1
 
       - name: Show Bluesky PDS container logs
         run: |
-          docker exec $PDS_CONTAINER_ID /bin/sh -c "curl -v https://example.com/xrpc/_health"
           docker logs $PDS_CONTAINER_ID
 
       - name: Create admin account
         run: |
-          OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/sh -c "sudo pdsadmin account create admin@example.com adminhandle.example.com")
+          OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/sh -c "pdsadmin account create admin@example.com adminhandle.example.com")
           echo "$OUTPUT"
 
           HANDLE=$(echo "$OUTPUT" | grep '^Handle' | awk '{print $3}')
