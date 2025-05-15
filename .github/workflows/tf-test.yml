@@ -74,8 +74,24 @@ jobs:
 
       - name: Create admin account
         run: |
-          docker exec $PDS_CONTAINER_ID /bin/bash -c "sudo pdsadmin account create admin@example.com adminhandle.example.com"
+          OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/bash -c "sudo pdsadmin account create admin@example.com adminhandle.example.com")
+          echo "$OUTPUT"
+          HANDLE=$(echo "$OUTPUT" | grep '^Handle' | awk '{print $3}')
+          DID=$(echo "$OUTPUT" | grep '^DID' | awk '{print $3}')
+          PASSWORD=$(echo "$OUTPUT" | grep '^Password' | awk '{print $3}')
+          echo "ADMIN_HANDLE=$HANDLE" >> $GITHUB_ENV
+          echo "ADMIN_DID=$DID" >> $GITHUB_ENV
+          echo "ADMIN_PASSWORD=$PASSWORD" >> $GITHUB_ENV
 
+      - name: Check admin environment variables
+        run: |
+          echo "ADMIN_HANDLE=$ADMIN_HANDLE"
+          echo "ADMIN_DID=$ADMIN_DID"
+          echo "ADMIN_PASSWORD=$ADMIN_PASSWORD"
+        env:
+          ADMIN_HANDLE: ${{ env.ADMIN_HANDLE }}
+          ADMIN_DID: ${{ env.ADMIN_DID }}
+          ADMIN_PASSWORD: ${{ env.ADMIN_PASSWORD }}
 
       # - name: Wait for the container to be ready
       #   run: sleep 30
