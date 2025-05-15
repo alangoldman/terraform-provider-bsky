@@ -5,10 +5,8 @@ services:
         image: traefik:v3.4.0
         hostname: example.com # the Traefik container should be reachable at the hostname so pdsadmin hits the Traefik container
         command:
-            - --api.insecure=true
             - --providers.docker=true
             - --providers.docker.exposedbydefault=false
-            - --entrypoints.http.address=:80
             - --entrypoints.https.address=:443
             - --certificatesresolvers.default.acme.tlschallenge=true
             - --certificatesresolvers.default.acme.email=admin@example.com
@@ -17,9 +15,7 @@ services:
             - --providers.file.watch=true
             - --providers.file.filename=/certs/traefik-dynamic.yml
         ports:
-            - "80:80"
             - "443:443"
-            - "8080:8080" # Traefik dashboard
         networks:
             - proxy
         volumes:
@@ -47,17 +43,11 @@ services:
             - ./certs/traefik.crt:/usr/local/share/ca-certificates/traefik.crt:ro
         labels:
             traefik.enable: "true"
-            traefik.http.routers.bluesky-pds-insecure.entrypoints: http
-            traefik.http.routers.bluesky-pds-insecure.rule: HostRegexp(`^.+\.example\.com$$`) || Host(`example.com`)
-            #traefik.http.routers.bluesky-pds-insecure.service: bluesky-pds
-            # traefik.http.routers.bluesky-pds-insecure.middlewares: BlueskyHeaders@file
             traefik.http.routers.bluesky-pds-secure.entrypoints: https
             traefik.http.routers.bluesky-pds-secure.rule: HostRegexp(`^.+\.example\.com$$`) || Host(`example.com`)
             traefik.http.routers.bluesky-pds-secure.tls: "true"
-            #traefik.http.routers.bluesky-pds-secure.service: bluesky-pds
             traefik.http.services.bluesky-pds.loadbalancer.server.scheme: http
             traefik.http.services.bluesky-pds.loadbalancer.server.port: 3000
-            # traefik.http.routers.bluesky-pds-secure.middlewares: BlueskyHeaders@file
 
 networks:
     proxy:
