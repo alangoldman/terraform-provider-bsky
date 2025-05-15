@@ -23,10 +23,11 @@ services:
         networks:
             - proxy
         environment:
-            PDS_JWT_SECRET: ...
-            PDS_ADMIN_PASSWORD: ...
-            PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: ...
-            PDS_HOSTNAME: example.com:3000
+            # environment variables are passed in by the workflow
+            PDS_ADMIN_PASSWORD: ${PDS_ADMIN_PASSWORD}
+            PDS_JWT_SECRET: ${PDS_JWT_SECRET}
+            PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX: ${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}
+            PDS_HOSTNAME: ${PDS_HOSTNAME}
             # PDS_EMAIL_SMTP_URL:
             # PDS_EMAIL_FROM_ADDRESS:
             EUID: 1000
