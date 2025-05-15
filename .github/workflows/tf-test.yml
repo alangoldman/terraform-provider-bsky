@@ -60,13 +60,14 @@ jobs:
       - name: Start services with Docker Compose
         run: |
           docker-compose -f .github/workflows/docker/docker-compose.yml up -d
-          CONTAINER_ID=$(docker-compose -f .github/workflows/docker/docker-compose.yml ps -q pds)
-          echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
+          PDS_CONTAINER_ID=$(docker-compose -f .github/workflows/docker/docker-compose.yml ps -q pds)
+          echo "PDS_CONTAINER_ID=$PDS_CONTAINER_ID" >> $GITHUB_ENV
 
-          docker exec $CONTAINER_ID apk add --no-cache ca-certificates
-          docker exec $CONTAINER_ID update-ca-certificates # trust the Traefik cert
+      - name: Install workflow dependencies and update CA certificates
+          docker exec $PDS_CONTAINER_ID apk add --no-cache ca-certificates curl
+          docker exec $PDS_CONTAINER_ID update-ca-certificates # trust the Traefik cert
 
-      - name: Wait for Traefik to be healthy (spin wait)
+      - name: Spin wait for Traefik+PDS to be healthy
         run: |
           for i in {1..5}; do
             echo "Attempt $i: curl -v https://example.com/xrpc/_health"
