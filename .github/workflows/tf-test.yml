@@ -89,15 +89,15 @@ jobs:
 
       - name: Download pdsadmin.sh
         run: |
-          curl -fsSLv -o pdsadmin.sh https://raw.githubusercontent.com/bluesky-social/pds/main/pdsadmin.sh
+          curl -fsSL -o pdsadmin.sh https://raw.githubusercontent.com/bluesky-social/pds/main/pdsadmin.sh
           cat pdsadmin.sh | head -n 20 # show the first 20 lines of the script
 
-          docker cp pdsadmin.sh $PDS_CONTAINER_ID:/usr/local/bin/pdsadmin.sh
-          docker exec $PDS_CONTAINER_ID chmod +x /usr/local/bin/pdsadmin.sh
+          docker cp pdsadmin.sh $PDS_CONTAINER_ID:/pds/pdsadmin.sh
+          docker exec $PDS_CONTAINER_ID chmod +x /pds/pdsadmin.sh
 
       - name: Create admin account
         run: |
-          OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/sh -c "/usr/local/bin/pdsadmin.sh account create admin@example.com adminhandle.example.com")
+          OUTPUT=$(docker exec $PDS_CONTAINER_ID /bin/sh -c "/pds/pdsadmin.sh account create admin@example.com adminhandle.example.com")
           echo "$OUTPUT"
 
           HANDLE=$(echo "$OUTPUT" | grep '^Handle' | awk '{print $3}')
