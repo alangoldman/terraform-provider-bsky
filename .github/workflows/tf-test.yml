@@ -19,13 +19,10 @@ jobs:
       - name: Set up Docker Compose
         run: sudo apt-get install -y docker-compose
 
-      - name: Download Docker Compose file
-        run: curl -L -o compose.yaml https://github.com/bluesky-social/pds/raw/main/compose.yaml
-
       - name: Start services with remote Docker Compose
         run: |
-          docker-compose -f compose.yaml up -d
-          CONTAINER_ID=$(docker-compose -f compose.yaml ps -q bluesky-pds)
+          docker-compose -f .github/workflows/test/docker-compose.yml up -d
+          CONTAINER_ID=$(docker-compose -f .github/workflows/test/docker-compose.yml ps -q bluesky-pds)
           echo "PDS_CONTAINER_ID=$CONTAINER_ID" >> $GITHUB_ENV
 
       - name: Wait for the container to be ready
