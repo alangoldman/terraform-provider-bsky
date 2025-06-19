@@ -2,7 +2,6 @@ package test
 
 import (
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -10,19 +9,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
-func testAccAccountPreCheck(t *testing.T) {
-	if os.Getenv("BSKY_PDS_ADMIN_PASSWORD") == "" {
-		t.Fatal("BSKY_PDS_ADMIN_PASSWORD must be set for acceptance tests")
-	}
-}
-
 func TestAccAccountResource(t *testing.T) {
 	// Use timestamp to ensure unique handles for each test run
 	timestamp := time.Now().Unix()
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testProviderPreCheck(t)
-			testAccAccountPreCheck(t)
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{

@@ -33,4 +33,7 @@ func testProviderPreCheck(t *testing.T) {
 	if v := os.Getenv("BSKY_PASSWORD"); v == "" {
 		t.Fatal("BSKY_PASSWORD must be set for acceptance tests")
 	}
+	if os.Getenv("BSKY_PDS_ADMIN_PASSWORD") == "" {
+		t.Fatal("BSKY_PDS_ADMIN_PASSWORD must be set for acceptance tests")
+	}
 }
