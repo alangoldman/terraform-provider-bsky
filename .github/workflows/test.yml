@@ -221,7 +221,7 @@ jobs:
 
       - name: Run acceptance tests
         run: |
-          go test -v -cover -parallel=10 ./...
+          go test -v -cover ./...
         timeout-minutes: 5
         env:
           TF_ACC: "1"
