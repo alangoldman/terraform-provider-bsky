@@ -208,6 +208,12 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: envfile
+      - run: |
+          source pdsenvfile
+          echo "BSKY_PDS_HOST=$BSKY_PDS_HOST" >> $GITHUB_ENV
+          echo "BSKY_HANDLE=$BSKY_HANDLE" >> $GITHUB_ENV
+          echo "BSKY_PASSWORD=$BSKY_PASSWORD" >> $GITHUB_ENV
+          echo "BSKY_PDS_ADMIN_PASSWORD=$BSKY_PDS_ADMIN_PASSWORD" >> $GITHUB_ENV
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
         with:
@@ -218,13 +224,6 @@ jobs:
           terraform_version: ${{ matrix.terraform }}
           terraform_wrapper: false
       - run: go mod download
-      - run: |
-          source pdsenvfile
-          echo "BSKY_PDS_HOST=$BSKY_PDS_HOST"
-          echo "BSKY_HANDLE=$BSKY_HANDLE"
-          echo "ADMIN_DID=$ADMIN_DID"
-          echo "BSKY_PASSWORD=$BSKY_PASSWORD"
-          echo "BSKY_PDS_ADMIN_PASSWORD=$BSKY_PDS_ADMIN_PASSWORD"
       - name: Run acceptance tests
         run: |
           source pdsenvfile
@@ -232,3 +231,7 @@ jobs:
         timeout-minutes: 5
         env:
           TF_ACC: "1"
+          BSKY_PDS_HOST: ${{ env.BSKY_PDS_HOST }}
+          BSKY_HANDLE: ${{ env.BSKY_HANDLE }}
+          BSKY_PASSWORD: ${{ env.BSKY_PASSWORD }}
+          BSKY_PDS_ADMIN_PASSWORD: ${{ env.BSKY_PDS_ADMIN_PASSWORD }}
