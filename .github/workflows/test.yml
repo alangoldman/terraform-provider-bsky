@@ -105,7 +105,7 @@ jobs:
           echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> $PDS_ENV_FILE
           echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> $PDS_ENV_FILE
           echo "PDS_HOSTNAME=example.com" >> $PDS_ENV_FILE
-          echo "BSKY_PDS_HOST=example.com" >> $GITHUB_ENV
+          echo "BSKY_PDS_HOST=https://example.com" >> $GITHUB_ENV
 
           # Values from https://code.modernleft.org/gravityfargo/bluesky-pds-docker/src/commit/2f574565d72d62fc47334cb9f5495b3f72ba91de/Dockerfile#L41-L54
           echo "PDS_DATA_DIRECTORY=/pds" >> $PDS_ENV_FILE
