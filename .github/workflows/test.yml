@@ -136,12 +136,12 @@ jobs:
 
       - name: Save admin environment variables for use in the tests job
         run: |
-          echo "BSKY_PDS_HOST=$BSKY_PDS_HOST" > myenvfile
-          echo "BSKY_HANDLE=$BSKY_HANDLE" >> myenvfile
-          echo "ADMIN_DID=$ADMIN_DID" >> myenvfile
-          echo "BSKY_PASSWORD=$BSKY_PASSWORD" >> myenvfile
-          echo "BSKY_PDS_ADMIN_PASSWORD=$BSKY_PDS_ADMIN_PASSWORD" >> myenvfile
-          cat myenvfile
+          echo "BSKY_PDS_HOST=$BSKY_PDS_HOST" > pdsenvfile
+          echo "BSKY_HANDLE=$BSKY_HANDLE" >> pdsenvfile
+          echo "ADMIN_DID=$ADMIN_DID" >> pdsenvfile
+          echo "BSKY_PASSWORD=$BSKY_PASSWORD" >> pdsenvfile
+          echo "BSKY_PDS_ADMIN_PASSWORD=$BSKY_PDS_ADMIN_PASSWORD" >> pdsenvfile
+          cat pdsenvfile
         env:
           BSKY_PDS_HOST: ${{ env.BSKY_PDS_HOST }}
           BSKY_HANDLE: ${{ env.BSKY_HANDLE }}
@@ -151,7 +151,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: envfile
-          path: myenvfile
+          path: pdsenvfile
 
 
 
@@ -209,7 +209,7 @@ jobs:
         with:
           name: envfile
       - run: |
-          source myenvfile
+          source pdsenvfile
           echo "BSKY_PDS_HOST=$BSKY_PDS_HOST"
           echo "BSKY_HANDLE=$BSKY_HANDLE"
           echo "ADMIN_DID=$ADMIN_DID"
@@ -232,5 +232,7 @@ jobs:
           ADMIN_DID: ${{ env.ADMIN_DID }}
           BSKY_PASSWORD: ${{ env.BSKY_PASSWORD }}
           BSKY_PDS_ADMIN_PASSWORD: ${{ env.BSKY_PDS_ADMIN_PASSWORD }}
-        run: go test -v -cover ./internal/provider/
+        run: |
+          source pdsenvfile
+          go test -v -cover ./internal/provider/
         timeout-minutes: 5
