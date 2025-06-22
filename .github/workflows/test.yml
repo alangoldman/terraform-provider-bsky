@@ -87,7 +87,7 @@ jobs:
       - run: go mod download
 
       - name: Install docker-compose and openssl
-        run: sudo apt-get install -y docker-compose openssl ca-certificates
+        run: sudo apt-get install -y docker-compose openssl
 
       - name: Generate secrets and create pds.env
         run: |
@@ -100,7 +100,7 @@ jobs:
           mkdir -p .github/workflows/docker/pds
 
           echo "PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}" > $PDS_ENV_FILE
-          echo "BSKY_PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}" >> $GITHUB_ENV
+          echo "BSKY_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD}" >> $GITHUB_ENV
           echo "PDS_JWT_SECRET=${PDS_JWT_SECRET}" >> $PDS_ENV_FILE
           echo "PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX}" >> $PDS_ENV_FILE
           echo "PDS_HOSTNAME=example.com" >> $PDS_ENV_FILE
@@ -118,18 +118,14 @@ jobs:
           echo "PDS_CRAWLERS=https://bsky.network" >> $PDS_ENV_FILE
           echo "LOG_ENABLED=true" >> $PDS_ENV_FILE
 
-      - name: Generate and trust a self-signed certificate for Traefik
+      - name: Generate a self-signed certificate for Traefik
         run: |
           # mkdir -p .github/workflows/docker/certs
           openssl req -x509 -newkey rsa:4096 -sha256 -days 1 -nodes \
-            -subj "/CN=example.com" \
             -addext "subjectAltName=DNS:example.com" \
             -keyout .github/workflows/docker/certs/traefik.key \
             -out .github/workflows/docker/certs/traefik.crt \
             -subj "/CN=example.com"
-
-          sudo cp .github/workflows/docker/certs/traefik.crt /usr/local/share/ca-certificates/traefik.crt
-          sudo update-ca-certificates
 
       - name: Start services with Docker Compose
         run: |
@@ -212,13 +208,13 @@ jobs:
           echo "BSKY_HANDLE=$BSKY_HANDLE"
           echo "ADMIN_DID=$ADMIN_DID"
           echo "BSKY_PASSWORD=$BSKY_PASSWORD"
-          echo "BSKY_PDS_ADMIN_PASSWORD=$BSKY_PDS_ADMIN_PASSWORD"
+          echo "BSKY_ADMIN_PASSWORD=$BSKY_ADMIN_PASSWORD"
         env:
           BSKY_PDS_HOST: ${{ env.BSKY_PDS_HOST }}
           BSKY_HANDLE: ${{ env.BSKY_HANDLE }}
           ADMIN_DID: ${{ env.ADMIN_DID }}
           BSKY_PASSWORD: ${{ env.BSKY_PASSWORD }}
-          BSKY_PDS_ADMIN_PASSWORD: ${{ env.BSKY_PDS_ADMIN_PASSWORD }}
+          BSKY_ADMIN_PASSWORD: ${{ env.BSKY_ADMIN_PASSWORD }}
 
       - name: Run acceptance tests
         run: |
@@ -229,4 +225,4 @@ jobs:
           BSKY_PDS_HOST: ${{ env.BSKY_PDS_HOST }}
           BSKY_HANDLE: ${{ env.BSKY_HANDLE }}
           BSKY_PASSWORD: ${{ env.BSKY_PASSWORD }}
-          BSKY_PDS_ADMIN_PASSWORD: ${{ env.BSKY_PDS_ADMIN_PASSWORD }}
+          BSKY_ADMIN_PASSWORD: ${{ env.BSKY_ADMIN_PASSWORD }}
