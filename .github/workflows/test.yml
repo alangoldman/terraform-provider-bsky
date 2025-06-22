@@ -229,3 +229,7 @@ jobs:
           BSKY_HANDLE: ${{ env.BSKY_HANDLE }}
           BSKY_PASSWORD: ${{ env.BSKY_PASSWORD }}
           BSKY_ADMIN_PASSWORD: ${{ env.BSKY_ADMIN_PASSWORD }}
+
+      - name: Show Bluesky PDS container logs
+        run: |
+          docker logs $PDS_CONTAINER_ID
