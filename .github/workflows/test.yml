@@ -64,7 +64,6 @@ jobs:
 
   # create a testing PDS and run acceptance tests against it
   test:
-    name: Terraform Provider Acceptance Tests
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
