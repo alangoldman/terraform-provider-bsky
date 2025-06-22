@@ -14,10 +14,10 @@ provider "bsky" {
 }
 ```
 ## Building the provider
-Install [go](https://go.dev/doc/install) and [golangci-lint](https://golangci-lint.run/welcome/install/#local-installation):
+Install [go](https://go.dev/doc/install) and [golangci-lint v2](https://golangci-lint.run/welcome/install/#local-installation):
 ```
 > choco install golang
-> curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.64.7
+> curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.1.6
 ```
 
 Run the make file:
@@ -28,10 +28,10 @@ Run the make file:
 ## Running the tests
 The make file will run the tests, they require the following environment variable pointing to a testing PDS:
 ```
-> BSKY_PDS_HOST=scoott.blog
+> BSKY_PDS_HOST=https://scoott.blog
 > BSKY_HANDLE=root
 > BSKY_PASSWORD=*******
-> BSKY_PDS_ADMIN_PASSWORD=********
+> BSKY_ADMIN_PASSWORD=********
 > make
 ```
 
