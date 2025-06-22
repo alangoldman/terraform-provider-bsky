@@ -167,6 +167,7 @@ jobs:
 
       - name: Test PDS health endpoint from host
         run: |
+          echo "127.0.0.1 example.com" | sudo tee -a /etc/hosts
 
           STATUS=$(curl -s -o /dev/null -w '%{http_code}' https://example.com/xrpc/_health)
           if [ "$STATUS" = "200" ]; then
@@ -216,10 +217,6 @@ jobs:
           ADMIN_DID: ${{ env.ADMIN_DID }}
           BSKY_PASSWORD: ${{ env.BSKY_PASSWORD }}
           BSKY_PDS_ADMIN_PASSWORD: ${{ env.BSKY_PDS_ADMIN_PASSWORD }}
-
-      - name: Add hosts entry for example.com
-        run: |
-          echo "127.0.0.1 example.com" | sudo tee -a /etc/hosts
 
       - name: Run acceptance tests
         run: |
