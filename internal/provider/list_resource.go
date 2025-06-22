@@ -143,7 +143,16 @@ func (l *listResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	}
 
 	// Get refreshed list value from Bsky.
-	list, err := bsky.GraphGetList(ctx, l.client, "", 1, state.Uri.ValueString())
+	var list *bsky.GraphGetList_Output
+	var err error
+	maxAttempts := 5
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		list, err = bsky.GraphGetList(ctx, l.client, "", 1, state.Uri.ValueString())
+		if err == nil {
+			break
+		}
+		time.Sleep(2 * time.Second)
+	}
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading list",
