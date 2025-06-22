@@ -226,7 +226,6 @@ jobs:
       - run: go mod download
       - name: Run acceptance tests
         run: |
-          source pdsenvfile
           go test -v -cover ./internal/provider/
         timeout-minutes: 5
         env:
