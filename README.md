@@ -14,7 +14,7 @@ provider "bsky" {
 }
 ```
 ## Building the provider
-Install [go](https://go.dev/doc/install) and [golangci-lint](https://golangci-lint.run/welcome/install/#local-installation):
+Install [go](https://go.dev/doc/install) and [golangci-lint v2](https://golangci-lint.run/welcome/install/#local-installation):
 ```
 > choco install golang
 > curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.64.7
