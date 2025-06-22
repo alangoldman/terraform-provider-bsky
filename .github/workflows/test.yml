@@ -87,7 +87,7 @@ jobs:
       - run: go mod download
 
       - name: Install docker-compose and openssl
-        run: sudo apt-get install -y docker-compose openssl
+        run: sudo apt-get install -y docker-compose openssl update-ca-certificates
 
       - name: Generate secrets and create pds.env
         run: |
@@ -118,13 +118,16 @@ jobs:
           echo "PDS_CRAWLERS=https://bsky.network" >> $PDS_ENV_FILE
           echo "LOG_ENABLED=true" >> $PDS_ENV_FILE
 
-      - name: Generate a self-signed certificate for Traefik
+      - name: Generate and trust a self-signed certificate for Traefik
         run: |
           # mkdir -p .github/workflows/docker/certs
-          openssl req -x509 -newkey rsa:4096 -sha256 -days 365 -nodes \
+          openssl req -x509 -newkey rsa:4096 -sha256 -days 1 -nodes \
             -keyout .github/workflows/docker/certs/traefik.key \
             -out .github/workflows/docker/certs/traefik.crt \
             -subj "/CN=example.com"
+
+          sudo cp traefik.crt /usr/local/share/ca-certificates/traefik.crt
+          sudo update-ca-certificates
 
       - name: Start services with Docker Compose
         run: |
@@ -152,13 +155,26 @@ jobs:
           for i in {1..5}; do
             STATUS=$(docker exec $PDS_CONTAINER_ID /bin/sh -c "curl -s -o /dev/null -w '%{http_code}' https://example.com/xrpc/_health" || true)
             if [ "$STATUS" = "200" ]; then
-              echo "PDS is healthy!"
+              echo "PDS is healthy inside the container!"
               exit 0
             fi
             echo "Waiting for PDS... ($i/5)"
             sleep 1
           done
           echo "PDS did not become healthy in time" >&2
+          docker exec $PDS_CONTAINER_ID /bin/sh -c "curl -v https://example.com/xrpc/_health" # output the error
+          exit 1
+
+      - name: Test PDS health endpoint from host
+        run: |
+
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' https://example.com/xrpc/_health)
+          if [ "$STATUS" = "200" ]; then
+            echo "PDS is healthy from host!"
+            exit 0
+          fi
+
+          echo "PDS health endpoint not accessible from host" >&2
           docker exec $PDS_CONTAINER_ID /bin/sh -c "curl -v https://example.com/xrpc/_health" # output the error
           exit 1
 
