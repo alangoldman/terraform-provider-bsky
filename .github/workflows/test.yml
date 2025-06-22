@@ -87,7 +87,7 @@ jobs:
       - run: go mod download
 
       - name: Install docker-compose and openssl
-        run: sudo apt-get install -y docker-compose openssl
+        run: sudo apt-get install -y docker-compose openssl ca-certificates
 
       - name: Generate secrets and create pds.env
         run: |
@@ -118,7 +118,7 @@ jobs:
           echo "PDS_CRAWLERS=https://bsky.network" >> $PDS_ENV_FILE
           echo "LOG_ENABLED=true" >> $PDS_ENV_FILE
 
-      - name: Generate a self-signed certificate for Traefik
+      - name: Generate and trust a self-signed certificate for Traefik
         run: |
           # mkdir -p .github/workflows/docker/certs
           openssl req -x509 -newkey rsa:4096 -sha256 -days 1 -nodes \
@@ -126,6 +126,9 @@ jobs:
             -keyout .github/workflows/docker/certs/traefik.key \
             -out .github/workflows/docker/certs/traefik.crt \
             -subj "/CN=example.com"
+
+          sudo cp .github/workflows/docker/certs/traefik.crt /usr/local/share/ca-certificates/traefik.crt
+          sudo update-ca-certificates
 
       - name: Start services with Docker Compose
         run: |
