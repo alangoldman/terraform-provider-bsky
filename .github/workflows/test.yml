@@ -10,6 +10,9 @@ name: Tests
 
 # It uses a self-signed certificate for HTTPS and runs the PDS admin script to create an admin.
 
+
+# This GitHub action runs your tests for each pull request and push.
+# Optionally, you can turn it on using a schedule for regular testing.
 on:
   pull_request:
     paths-ignore:
@@ -17,6 +20,10 @@ on:
   push:
     paths-ignore:
       - 'README.md'
+
+# Testing only needs permissions to read the repository contents.
+permissions:
+  contents: read
 
 jobs:
   create-testing-pds:
@@ -127,23 +134,30 @@ jobs:
         run: |
           docker logs $PDS_CONTAINER_ID
 
-      - name: Check admin environment variables
+      - name: Save admin environment variables for use in the tests job
         run: |
-          echo "BSKY_HANDLE=$BSKY_HANDLE"
-          echo "ADMIN_DID=$ADMIN_DID"
-          echo "BSKY_PASSWORD=$BSKY_PASSWORD"
-          echo "BSKY_PDS_ADMIN_PASSWORD=$BSKY_PDS_ADMIN_PASSWORD"
+          echo "BSKY_PDS_HOST=$BSKY_PDS_HOST" > myenvfile
+          echo "BSKY_HANDLE=$BSKY_HANDLE" >> myenvfile
+          echo "ADMIN_DID=$ADMIN_DID" >> myenvfile
+          echo "BSKY_PASSWORD=$BSKY_PASSWORD" >> myenvfile
+          echo "BSKY_PDS_ADMIN_PASSWORD=$BSKY_PDS_ADMIN_PASSWORD" >> myenvfile
+          cat myenvfile
         env:
           BSKY_PDS_HOST: ${{ env.BSKY_PDS_HOST }}
           BSKY_HANDLE: ${{ env.BSKY_HANDLE }}
           ADMIN_DID: ${{ env.ADMIN_DID }}
           BSKY_PASSWORD: ${{ env.BSKY_PASSWORD }}
           BSKY_PDS_ADMIN_PASSWORD: ${{ env.BSKY_PDS_ADMIN_PASSWORD }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: envfile
+          path: myenvfile
+
 
 
   # Ensure project builds before running testing matrix
   build:
-    name: Build
+    name: build
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -180,7 +194,7 @@ jobs:
   # Run acceptance tests in a matrix with Terraform CLI versions
   test:
     name: Terraform Provider Acceptance Tests
-    needs: build
+    needs: [build, create-testing-pds]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -191,6 +205,16 @@ jobs:
           - '1.0.*'
           - '1.12.*'
     steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: envfile
+      - run: |
+          source myenvfile
+          echo "BSKY_PDS_HOST=$BSKY_PDS_HOST"
+          echo "BSKY_HANDLE=$BSKY_HANDLE"
+          echo "ADMIN_DID=$ADMIN_DID"
+          echo "BSKY_PASSWORD=$BSKY_PASSWORD"
+          echo "BSKY_PDS_ADMIN_PASSWORD=$BSKY_PDS_ADMIN_PASSWORD"
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
         with:
@@ -209,4 +233,4 @@ jobs:
           BSKY_PASSWORD: ${{ env.BSKY_PASSWORD }}
           BSKY_PDS_ADMIN_PASSWORD: ${{ env.BSKY_PDS_ADMIN_PASSWORD }}
         run: go test -v -cover ./internal/provider/
-        timeout-minutes: 10
+        timeout-minutes: 5
