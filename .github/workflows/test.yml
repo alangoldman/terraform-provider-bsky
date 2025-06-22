@@ -4,11 +4,11 @@ name: Tests
 # The PDS instance is set up with Traefik for routing and TLS termination. This is required because
 # the pds-admin script uses HTTPS to create an admin account.
 
+# It uses a self-signed certificate for HTTPS and runs the PDS admin script to create an admin.
+
 # If this becomes hard to maintain, an alternative would be to modify the pds-admin script after
 # downloading it use HTTP, or an option could be added to the real pds-admin script to allow for
 # easier testing.
-
-# It uses a self-signed certificate for HTTPS and runs the PDS admin script to create an admin.
 
 
 # This GitHub action runs your tests for each pull request and push.
@@ -126,7 +126,7 @@ jobs:
             -out .github/workflows/docker/certs/traefik.crt \
             -subj "/CN=example.com"
 
-          sudo cp traefik.crt /usr/local/share/ca-certificates/traefik.crt
+          sudo cp .github/workflows/docker/certs/traefik.crt /usr/local/share/ca-certificates/traefik.crt
           sudo update-ca-certificates
 
       - name: Start services with Docker Compose
