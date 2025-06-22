@@ -225,14 +225,10 @@ jobs:
           terraform_version: ${{ matrix.terraform }}
           terraform_wrapper: false
       - run: go mod download
-      - env:
-          TF_ACC: "1"
-          BSKY_PDS_HOST: ${{ env.BSKY_PDS_HOST }}
-          BSKY_HANDLE: ${{ env.BSKY_HANDLE }}
-          ADMIN_DID: ${{ env.ADMIN_DID }}
-          BSKY_PASSWORD: ${{ env.BSKY_PASSWORD }}
-          BSKY_PDS_ADMIN_PASSWORD: ${{ env.BSKY_PDS_ADMIN_PASSWORD }}
+      - name: Run acceptance tests
         run: |
           source pdsenvfile
           go test -v -cover ./internal/provider/
         timeout-minutes: 5
+        env:
+          TF_ACC: "1"
