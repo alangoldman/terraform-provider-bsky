@@ -87,7 +87,7 @@ jobs:
       - run: go mod download
 
       - name: Install docker-compose and openssl
-        run: sudo apt-get install -y docker-compose openssl update-ca-certificates
+        run: sudo apt-get install -y docker-compose openssl ca-certificates
 
       - name: Generate secrets and create pds.env
         run: |
