@@ -123,7 +123,7 @@ jobs:
           # mkdir -p .github/workflows/docker/certs
           openssl req -x509 -newkey rsa:4096 -sha256 -days 1 -nodes \
             -subj "/CN=example.com" \
-            -addext "subjectAltName=DNS:example.com"
+            -addext "subjectAltName=DNS:example.com" \
             -keyout .github/workflows/docker/certs/traefik.key \
             -out .github/workflows/docker/certs/traefik.crt \
             -subj "/CN=example.com"
