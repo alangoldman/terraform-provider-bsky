@@ -87,7 +87,7 @@ jobs:
           terraform_wrapper: false
       - run: go mod download
 
-      - name: Set up Workflow dependencies
+      - name: Install docker-compose and openssl
         run: sudo apt-get install -y docker-compose openssl
 
       - name: Generate secrets and create pds.env
@@ -195,7 +195,6 @@ jobs:
           echo "ADMIN_DID=$ADMIN_DID"
           echo "BSKY_PASSWORD=$BSKY_PASSWORD"
           echo "BSKY_PDS_ADMIN_PASSWORD=$BSKY_PDS_ADMIN_PASSWORD"
-          cat pdsenvfile
         env:
           BSKY_PDS_HOST: ${{ env.BSKY_PDS_HOST }}
           BSKY_HANDLE: ${{ env.BSKY_HANDLE }}
