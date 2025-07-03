@@ -131,10 +131,12 @@ jobs:
           sudo update-ca-certificates
 
       - name: Start services with Docker Compose
+        id: start_pds
         run: |
-          docker-compose -f .github/workflows/docker/docker-compose.yml up -d
-          PDS_CONTAINER_ID=$(docker-compose -f .github/workflows/docker/docker-compose.yml ps -q pds)
+          docker compose -f .github/workflows/docker/docker-compose.yml up -d
+          PDS_CONTAINER_ID=$(docker compose -f .github/workflows/docker/docker-compose.yml ps -q pds)
           echo "PDS_CONTAINER_ID=$PDS_CONTAINER_ID" >> $GITHUB_ENV
+          echo "PDS_CONTAINER_ID=$PDS_CONTAINER_ID" >> $GITHUB_OUTPUT
 
       - name: Install workflow dependencies and update CA certificates in the PDS container
         run: |
@@ -181,9 +183,8 @@ jobs:
           exit 1
 
       - name: Show Bluesky PDS container logs
-        if: always()
-        run: |
-          docker logs $PDS_CONTAINER_ID
+        if: steps.start_pds.outputs.PDS_CONTAINER_ID != ''
+        run: docker logs ${{ steps.start_pds.outputs.PDS_CONTAINER_ID }}
 
       - name: Create admin account
         run: |
@@ -203,9 +204,8 @@ jobs:
           fi
 
       - name: Show Bluesky PDS container logs
-        if: always()
-        run: |
-          docker logs $PDS_CONTAINER_ID
+        if: steps.start_pds.outputs.PDS_CONTAINER_ID != ''
+        run: docker logs ${{ steps.start_pds.outputs.PDS_CONTAINER_ID }}
 
       - name: Show admin environment variables
         run: |
@@ -232,7 +232,10 @@ jobs:
           BSKY_PASSWORD: ${{ env.BSKY_PASSWORD }}
           BSKY_ADMIN_PASSWORD: ${{ env.BSKY_ADMIN_PASSWORD }}
 
-      - name: Show Bluesky PDS container logs
+      - name: Setup tmate session
         if: always()
-        run: |
-          docker logs $PDS_CONTAINER_ID
+        uses: mxschmitt/action-tmate@v3
+          
+      - name: Show Bluesky PDS container logs
+        if: steps.start_pds.outputs.PDS_CONTAINER_ID != ''
+        run: docker logs ${{ steps.start_pds.outputs.PDS_CONTAINER_ID }}
