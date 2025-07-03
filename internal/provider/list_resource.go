@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/bluesky-social/indigo/api/atproto"
@@ -143,28 +142,18 @@ func (l *listResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	// Get refreshed list value from Bsky with retry logic for eventual consistency
-	var list *bsky.GraphGetList_Output
-	var err error
-
-	// Retry with exponential backoff for up to 10 seconds
-	for attempt := 0; attempt < 5; attempt++ {
-		list, err = bsky.GraphGetList(ctx, l.client, "", 1, state.Uri.ValueString())
-		if err == nil {
-			break
-		}
-
-		// Check if it's a "not found" error that might be due to eventual consistency
-		if strings.Contains(err.Error(), "List not found") && attempt < 4 {
-			waitTime := time.Duration(250*(1<<attempt)) * time.Millisecond // 250ms, 500ms, 1s, 2s
-			time.Sleep(waitTime)
-			continue
-		}
-
-		// For other errors or final attempt, break and handle error below
-		break
+	// Parse the URI to extract components for the repository API
+	uri, err := syntax.ParseATURI(state.Uri.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Invalid list URI",
+			"Could not parse Bluesky list URI "+state.Uri.ValueString()+": "+err.Error(),
+		)
+		return
 	}
 
+	// Get refreshed list value from the repository directly (same API as creation uses)
+	record, err := atproto.RepoGetRecord(ctx, l.client, "", uri.Collection().String(), uri.Authority().String(), uri.RecordKey().String())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading list",
@@ -172,13 +161,30 @@ func (l *listResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		)
 		return
 	}
+	if record.Cid == nil {
+		resp.Diagnostics.AddError(
+			"Failed to parse retrieved list",
+			"record.Cid is nil",
+		)
+		return
+	}
 
-	// Overwrite with refreshed state.
-	state.Cid = types.StringValue(list.List.Cid)
-	state.Uri = types.StringValue(list.List.Uri)
-	state.Name = types.StringValue(list.List.Name)
-	state.Purpose = types.StringValue(*list.List.Purpose)
-	state.Description = types.StringValue(*list.List.Description)
+	// Cast the record to a list
+	list, ok := record.Value.Val.(*bsky.GraphList)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Failed to parse retrieved list",
+			"Could not cast the returned list into the expected type",
+		)
+		return
+	}
+
+	// Overwrite with refreshed state using the repository record
+	state.Cid = types.StringValue(*record.Cid)
+	state.Uri = types.StringValue(state.Uri.ValueString()) // Keep the same URI
+	state.Name = types.StringValue(list.Name)
+	state.Purpose = types.StringValue(*list.Purpose)
+	state.Description = types.StringValue(*list.Description)
 
 	// Set refreshed state.
 	diags = resp.State.Set(ctx, &state)
