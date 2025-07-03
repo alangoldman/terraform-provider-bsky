@@ -299,6 +299,7 @@ func getRecordAndURIFromString(ctx context.Context, client *xrpc.Client, uri str
 }
 
 func GetListFromURI(ctx context.Context, client *xrpc.Client, uri string) (*bsky.GraphList, *atproto.RepoGetRecord_Output, syntax.ATURI, error) {
+	// First try to get the list from the repository API
 	record, parsedUri, err := getRecordAndURIFromString(ctx, client, uri)
 	if err != nil {
 		return nil, nil, parsedUri, fmt.Errorf("could not get record from URI %s: %w", uri, err)
@@ -310,6 +311,26 @@ func GetListFromURI(ctx context.Context, client *xrpc.Client, uri string) (*bsky
 		return nil, record, parsedUri, fmt.Errorf("could not cast record to GraphList")
 	}
 
+	// Ensure the list is available via the Graph API too
+	retryInterval := 2 * time.Second
+	maxRetries := 30
+	foundGraphList := false
+
+	for range maxRetries {
+		// Try to get the list via Graph API
+		_, err := bsky.GraphGetList(ctx, client, "", 50, uri)
+		if err == nil {
+			foundGraphList = true
+			break
+		}
+		time.Sleep(retryInterval)
+	}
+
+	if !foundGraphList {
+		return nil, record, parsedUri, fmt.Errorf("could not find list %s via Graph API after %d seconds", uri, maxRetries*int(retryInterval.Seconds()))
+	}
+
+	// We've verified the list exists in the Graph API
 	return list, record, parsedUri, nil
 }
 
