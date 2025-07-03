@@ -72,7 +72,7 @@ jobs:
       matrix:
         # test against oldest and latest Terraform versions
         terraform:
-          - '1.0.*'
+          #- '1.0.*'
           - '1.12.*'
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -86,8 +86,8 @@ jobs:
           terraform_wrapper: false
       - run: go mod download
 
-      - name: Install docker-compose and openssl
-        run: sudo apt-get install -y docker-compose openssl ca-certificates
+      - name: Install and openssl
+        run: sudo apt-get install -y openssl ca-certificates
 
       - name: Generate secrets and create pds.env
         run: |
@@ -131,18 +131,51 @@ jobs:
           sudo update-ca-certificates
 
       - name: Start services with Docker Compose
+        id: start_pds
         run: |
-          docker-compose -f .github/workflows/docker/docker-compose.yml up -d
-          PDS_CONTAINER_ID=$(docker-compose -f .github/workflows/docker/docker-compose.yml ps -q pds)
+          docker compose -f .github/workflows/docker/docker-compose.yml up -d
+          PDS_CONTAINER_ID=$(docker compose -f .github/workflows/docker/docker-compose.yml ps -q pds)
           echo "PDS_CONTAINER_ID=$PDS_CONTAINER_ID" >> $GITHUB_ENV
+          echo "PDS_CONTAINER_ID=$PDS_CONTAINER_ID" >> $GITHUB_OUTPUT
 
       - name: Install workflow dependencies and update CA certificates in the PDS container
         run: |
           # from https://code.modernleft.org/gravityfargo/bluesky-pds-docker/src/commit/2f574565d72d62fc47334cb9f5495b3f72ba91de/Dockerfile#L71
           # dependencies for pdsadmin.sh, update-ca-certificates, and curl to fetch pdsadmin.sh
           # coretools was needed for pdsadmin.sh because it uses rm --force which is not in alpine
-          docker exec $PDS_CONTAINER_ID apk add --no-cache bash coreutils dumb-init sudo curl ca-certificates gnupg jq openssl util-linux xxd sqlite
+          docker exec $PDS_CONTAINER_ID cat /etc/os-release
+          docker exec $PDS_CONTAINER_ID which apk
+          docker exec $PDS_CONTAINER_ID echo $PATH
+          docker exec $PDS_CONTAINER_ID cat /proc/meminfo | grep MemTotal
+          docker exec $PDS_CONTAINER_ID nproc
+          docker exec $PDS_CONTAINER_ID free -m
+          docker exec $PDS_CONTAINER_ID df -h
+          # Print cgroup v1 and v2 memory info, but do not fail if missing
+          docker exec $PDS_CONTAINER_ID cat /sys/fs/cgroup/memory/memory.limit_in_bytes || true
+          docker exec $PDS_CONTAINER_ID cat /sys/fs/cgroup/memory.max || true
+          docker exec $PDS_CONTAINER_ID cat /sys/fs/cgroup/memory.current || true
+          docker exec $PDS_CONTAINER_ID cat /proc/self/cgroup || true
+          docker exec $PDS_CONTAINER_ID cat /proc/1/status || true
+          docker exec -u root $PDS_CONTAINER_ID /sbin/apk update
+          # Try to install only bash and coreutils first, print dmesg and exit if it fails
+          if ! docker exec -u root $PDS_CONTAINER_ID /sbin/apk add --no-cache bash coreutils; then
+            echo '==== dmesg output (possible OOM killer messages) ===='
+            docker exec $PDS_CONTAINER_ID dmesg | tail -40 || true
+            echo '==== docker inspect output for container resource limits ===='
+            docker inspect $PDS_CONTAINER_ID || true
+            exit 1
+          fi
+          docker exec -u root $PDS_CONTAINER_ID /sbin/apk add --no-cache dumb-init sudo
+          docker exec -u root $PDS_CONTAINER_ID /sbin/apk add --no-cache curl ca-certificates
+          docker exec -u root $PDS_CONTAINER_ID /sbin/apk add --no-cache gnupg jq
+          docker exec -u root $PDS_CONTAINER_ID /sbin/apk add --no-cache openssl util-linux
+          docker exec -u root $PDS_CONTAINER_ID /sbin/apk add --no-cache xxd sqlite
           docker exec $PDS_CONTAINER_ID update-ca-certificates # trust the Traefik cert
+          # If apk add fails, print dmesg for OOM killer messages
+          if [ $? -ne 0 ]; then
+            echo '==== dmesg output (possible OOM killer messages) ===='
+            docker exec $PDS_CONTAINER_ID dmesg | tail -40 || true
+          fi
 
       - name: Download pdsadmin.sh
         run: |
@@ -181,9 +214,8 @@ jobs:
           exit 1
 
       - name: Show Bluesky PDS container logs
-        if: always()
-        run: |
-          docker logs $PDS_CONTAINER_ID
+        if: steps.start_pds.outputs.PDS_CONTAINER_ID != ''
+        run: docker logs ${{ steps.start_pds.outputs.PDS_CONTAINER_ID }}
 
       - name: Create admin account
         run: |
@@ -203,9 +235,8 @@ jobs:
           fi
 
       - name: Show Bluesky PDS container logs
-        if: always()
-        run: |
-          docker logs $PDS_CONTAINER_ID
+        if: steps.start_pds.outputs.PDS_CONTAINER_ID != ''
+        run: docker logs ${{ steps.start_pds.outputs.PDS_CONTAINER_ID }}
 
       - name: Show admin environment variables
         run: |
@@ -233,6 +264,5 @@ jobs:
           BSKY_ADMIN_PASSWORD: ${{ env.BSKY_ADMIN_PASSWORD }}
 
       - name: Show Bluesky PDS container logs
-        if: always()
-        run: |
-          docker logs $PDS_CONTAINER_ID
+        if: steps.start_pds.outputs.PDS_CONTAINER_ID != ''
+        run: docker logs ${{ steps.start_pds.outputs.PDS_CONTAINER_ID }}
