@@ -280,7 +280,6 @@ func (l *listResource) ImportState(ctx context.Context, req resource.ImportState
 	resource.ImportStatePassthroughID(ctx, path.Root("uri"), req, resp)
 }
 
-// getRecordAndURIFromString retrieves a record from the repository API using a URI string and returns both the record and parsed URI
 func getRecordAndURIFromString(ctx context.Context, client *xrpc.Client, uri string) (*atproto.RepoGetRecord_Output, syntax.ATURI, error) {
 	parsedUri, err := syntax.ParseATURI(uri)
 	if err != nil {
@@ -299,7 +298,6 @@ func getRecordAndURIFromString(ctx context.Context, client *xrpc.Client, uri str
 	return record, parsedUri, nil
 }
 
-// GetListFromURI retrieves and parses a list directly from a URI string
 func GetListFromURI(ctx context.Context, client *xrpc.Client, uri string) (*bsky.GraphList, *atproto.RepoGetRecord_Output, syntax.ATURI, error) {
 	record, parsedUri, err := getRecordAndURIFromString(ctx, client, uri)
 	if err != nil {
@@ -315,7 +313,6 @@ func GetListFromURI(ctx context.Context, client *xrpc.Client, uri string) (*bsky
 	return list, record, parsedUri, nil
 }
 
-// GetListItemFromURI retrieves and parses a list item directly from a URI string
 func GetListItemFromURI(ctx context.Context, client *xrpc.Client, uri string) (*bsky.GraphListitem, *atproto.RepoGetRecord_Output, syntax.ATURI, error) {
 	record, parsedUri, err := getRecordAndURIFromString(ctx, client, uri)
 	if err != nil {
