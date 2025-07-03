@@ -232,9 +232,10 @@ jobs:
           BSKY_PASSWORD: ${{ env.BSKY_PASSWORD }}
           BSKY_ADMIN_PASSWORD: ${{ env.BSKY_ADMIN_PASSWORD }}
 
-      - name: Setup tmate session
-        if: always()
-        uses: mxschmitt/action-tmate@v3
+      # - name: Setup tmate session
+      #   if: always()
+      #   uses: mxschmitt/action-tmate@v3
+      # uncomment to be able to debug the GitHub action by SSHing into the runner. See https://github.com/mxschmitt/action-tmate
           
       - name: Show Bluesky PDS container logs
         if: steps.start_pds.outputs.PDS_CONTAINER_ID != ''
