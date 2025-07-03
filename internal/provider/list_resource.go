@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/bluesky-social/indigo/api/atproto"
@@ -142,8 +143,28 @@ func (l *listResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	// Get refreshed list value from Bsky.
-	list, err := bsky.GraphGetList(ctx, l.client, "", 1, state.Uri.ValueString())
+	// Get refreshed list value from Bsky with retry logic for eventual consistency
+	var list *bsky.GraphGetList_Output
+	var err error
+
+	// Retry with exponential backoff for up to 10 seconds
+	for attempt := 0; attempt < 5; attempt++ {
+		list, err = bsky.GraphGetList(ctx, l.client, "", 1, state.Uri.ValueString())
+		if err == nil {
+			break
+		}
+
+		// Check if it's a "not found" error that might be due to eventual consistency
+		if strings.Contains(err.Error(), "List not found") && attempt < 4 {
+			waitTime := time.Duration(250*(1<<attempt)) * time.Millisecond // 250ms, 500ms, 1s, 2s
+			time.Sleep(waitTime)
+			continue
+		}
+
+		// For other errors or final attempt, break and handle error below
+		break
+	}
+
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading list",
