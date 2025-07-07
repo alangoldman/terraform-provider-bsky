@@ -120,6 +120,29 @@ func (l *listResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 
+	// Wait for the list to be available from the graph API (some propagation delay especially in the GitHub action tests)
+	deadline := time.Now().Add(2 * time.Minute)
+	retryInterval := 10 * time.Second
+
+	var getListErr error
+	for time.Now().Before(deadline) {
+		_, getListErr = bsky.GraphGetList(ctx, l.client, "", 1, record.Uri)
+		if getListErr == nil {
+			// List found successfully, exit
+			break
+		}
+
+		time.Sleep(retryInterval)
+	}
+
+	if getListErr != nil {
+		resp.Diagnostics.AddError(
+			"Error reading list",
+			"Could not read Bsky list URI "+record.Uri+" after waiting for 2 minutes: "+getListErr.Error(),
+		)
+		// do not return so list is saved to state as tainted
+	}
+
 	// Map response body to schema and populate Computed attribute values.
 	plan.Cid = types.StringValue(record.Cid)
 	plan.Uri = types.StringValue(record.Uri)
