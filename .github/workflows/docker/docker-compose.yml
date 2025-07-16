@@ -45,8 +45,7 @@ services:
             
     # AppView service adapted from https://github.com/bluesky-social/indigo/blob/main/cmd/fakermaker/docker-compose.yaml
     appview:
-        image: ghcr.io/bluesky-social/atproto:latest
-        #image: ghcr.io/bluesky-social/atproto:bsky-19d2bdc4576bfabe6609afe160cc2c220c351579
+        image: ghcr.io/bluesky-social/atproto:bsky-47236325a95f75265afd87aa1b1063e257e36836
         networks:
             - proxy
         environment:
