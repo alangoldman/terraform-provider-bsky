@@ -124,11 +124,11 @@ jobs:
         run: |
           # mkdir -p .github/workflows/docker/certs
           openssl req -x509 -newkey rsa:4096 -sha256 -days 1 -nodes \
-            -addext "subjectAltName=DNS:example.com" \
+            -addext "subjectAltName=DNS:example.com,DNS:appview.example.com" \
             -keyout .github/workflows/docker/certs/traefik.key \
             -out .github/workflows/docker/certs/traefik.crt \
             -subj "/CN=example.com"
-
+          
           sudo cp .github/workflows/docker/certs/traefik.crt /usr/local/share/ca-certificates/traefik.crt
           sudo update-ca-certificates
 
