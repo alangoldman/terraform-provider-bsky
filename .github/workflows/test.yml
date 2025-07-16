@@ -1,13 +1,15 @@
 name: Tests
-# This workflow sets up a PDS instance using Docker compose and runs the tests against it.
+# This workflow sets up a PDS instance and AppView using Docker compose and runs the tests against the PDS.
 
 # The PDS instance is set up with Traefik for routing and TLS termination. This is required because
-# the pds-admin script uses HTTPS to create an admin account.
+# the pdsadmin script uses HTTPS to create an admin account.
+
+# The AppView is setup because some PDS requests are proxied to an AppView instance.
 
 # It uses a self-signed certificate for HTTPS and runs the PDS admin script to create an admin.
 
-# If this becomes hard to maintain, an alternative would be to modify the pds-admin script after
-# downloading it use HTTP, or an option could be added to the real pds-admin script to allow for
+# If this becomes hard to maintain, an alternative would be to modify the pdsadmin script after
+# downloading it use HTTP, or an option could be added to the real pdsadmin script to allow for
 # easier testing.
 
 

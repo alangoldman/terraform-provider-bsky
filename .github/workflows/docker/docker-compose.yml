@@ -43,14 +43,22 @@ services:
         depends_on:
             - appview
             
-    # AppView service
+    # AppView service adapted from https://github.com/bluesky-social/indigo/blob/main/cmd/fakermaker/docker-compose.yaml
     appview:
-        image: ghcr.io/bluesky-social/bsky:latest
+        image: ghcr.io/bluesky-social/atproto:latest
+        #image: ghcr.io/bluesky-social/atproto:bsky-19d2bdc4576bfabe6609afe160cc2c220c351579
         networks:
             - proxy
         environment:
+            - ENV=dev
+            - DB_POSTGRES_URL=postgres://bsky:yksb@postgres:6543/bsky_dev
             - PORT=3000
-            - DB_POSTGRES_URL=postgres://postgres:postgres@postgres:5432/postgres
+            - DEBUG_MODE=1
+            - LOG_LEVEL=info
+            - LOG_ENABLED=true
+            - LOG_DESTINATION=1
+        working_dir: /app/packages/bsky
+        command: yarn run start
         labels:
             traefik.enable: "true"
             traefik.http.routers.appview-secure.entrypoints: https
@@ -59,17 +67,24 @@ services:
             traefik.http.services.appview.loadbalancer.server.scheme: http
             traefik.http.services.appview.loadbalancer.server.port: 3000
         depends_on:
-            - postgres
+            postgres:
+                condition: service_healthy
             
     # PostgreSQL for AppView
     postgres:
-        image: postgres:15-alpine
+        image: postgres:14.3-alpine
         environment:
-            POSTGRES_USER: postgres
-            POSTGRES_PASSWORD: postgres
-            POSTGRES_DB: postgres
+            POSTGRES_USER: bsky
+            POSTGRES_PASSWORD: yksb
+            POSTGRES_DB: bsky_dev
+        command: -p 6543
         networks:
             - proxy
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -p 6543 -U bsky"]
+            interval: 3s
+            timeout: 2s
+            retries: 3
         volumes:
             - postgres_data:/var/lib/postgresql/data
 
