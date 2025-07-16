@@ -54,7 +54,7 @@ services:
             # Required environment variables according to README https://github.com/bluesky-social/atproto/blob/main/services/bsky/README.md
             - BSKY_PUBLIC_URL=https://appview.example.com
             - BSKY_DID_PLC_URL=https://plc.directory
-            - BSKY_DATAPLANE_URL=postgres://bsky:yksb@postgres:6543/bsky_dev
+            - BSKY_DATAPLANE_URLS=postgres://bsky:yksb@postgres:6543/bsky_dev
             - BSKY_SERVICE_SIGNING_KEY=did:key:example
             - BSKY_ADMIN_PASSWORD=admin
             - BSKY_PORT=3000
