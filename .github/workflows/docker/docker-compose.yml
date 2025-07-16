@@ -60,7 +60,7 @@ services:
             - BSKY_PORT=3000
             - BSKY_SERVER_DID=did:web:appview.example.com
             - BSKY_BSYNC_URL=http://example.com
-            - MOD_SERVICE_DID=did:web:mod:ar7c4by46qjdydhdevvrndac
+            - MOD_SERVICE_DID=did:web:ar7c4by46qjdydhdevvrndac
             # Additional environment variables
             - NODE_ENV=development
             - DEBUG_MODE=1
