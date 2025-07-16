@@ -111,8 +111,8 @@ jobs:
           echo "PDS_BLOBSTORE_DISK_LOCATION=/pds/blocks" >> $PDS_ENV_FILE
           echo "PDS_BLOB_UPLOAD_LIMIT=52428800" >> $PDS_ENV_FILE
           echo "PDS_DID_PLC_URL=https://plc.directory" >> $PDS_ENV_FILE
-          echo "PDS_BSKY_APP_VIEW_URL=https://api.bsky.app" >> $PDS_ENV_FILE
-          echo "PDS_BSKY_APP_VIEW_DID=did:web:api.bsky.app" >> $PDS_ENV_FILE
+          echo "PDS_BSKY_APP_VIEW_URL=https://appview.example.com" >> $PDS_ENV_FILE
+          echo "PDS_BSKY_APP_VIEW_DID=did:web:appview.example.com" >> $PDS_ENV_FILE
           echo "PDS_REPORT_SERVICE_URL=https://mod.bsky.app" >> $PDS_ENV_FILE
           echo "PDS_REPORT_SERVICE_DID=did:plc:ar7c4by46qjdydhdevvrndac" >> $PDS_ENV_FILE
           echo "PDS_CRAWLERS=https://bsky.network" >> $PDS_ENV_FILE
@@ -135,8 +135,10 @@ jobs:
         run: |
           docker compose -f .github/workflows/docker/docker-compose.yml up -d
           PDS_CONTAINER_ID=$(docker compose -f .github/workflows/docker/docker-compose.yml ps -q pds)
+          APPVIEW_CONTAINER_ID=$(docker compose -f .github/workflows/docker/docker-compose.yml ps -q appview)
           echo "PDS_CONTAINER_ID=$PDS_CONTAINER_ID" >> $GITHUB_ENV
           echo "PDS_CONTAINER_ID=$PDS_CONTAINER_ID" >> $GITHUB_OUTPUT
+          echo "APPVIEW_CONTAINER_ID=$APPVIEW_CONTAINER_ID" >> $GITHUB_ENV
 
       - name: Install workflow dependencies and update CA certificates in the PDS container
         run: |
@@ -181,6 +183,33 @@ jobs:
           echo "PDS health endpoint not accessible from host" >&2
           docker exec $PDS_CONTAINER_ID /bin/sh -c "curl -v https://example.com/xrpc/_health" # output the error
           exit 1
+          
+      - name: Test AppView health endpoint
+        run: |
+          echo "Checking AppView health from inside the PDS container..."
+          CONTAINER_STATUS=$(docker exec $PDS_CONTAINER_ID /bin/sh -c "curl -s -o /dev/null -w '%{http_code}' https://appview.example.com" || echo "failed")
+          if [ "$CONTAINER_STATUS" = "200" ]; then
+            echo "AppView is healthy inside the container!"
+          else
+            echo "AppView health endpoint not accessible from inside PDS container" >&2
+            docker exec $PDS_CONTAINER_ID /bin/sh -c "curl -v https://appview.example.com" || echo "curl failed"
+            echo "AppView container logs:"
+            docker logs $APPVIEW_CONTAINER_ID
+            exit 1
+          fi
+          
+          # Now check from the host
+          echo "Checking AppView health from the host..."
+          HOST_STATUS=$(curl -s -o /dev/null -w '%{http_code}' https://appview.example.com)
+          if [ "$HOST_STATUS" = "200" ]; then
+            echo "AppView is healthy from host!"
+          else
+            echo "AppView health endpoint not accessible from host" >&2
+            curl -v https://appview.example.com
+            echo "AppView container logs:"
+            docker logs $APPVIEW_CONTAINER_ID
+            exit 1
+          fi
 
       - name: Show Bluesky PDS container logs
         if: steps.start_pds.outputs.PDS_CONTAINER_ID != ''
