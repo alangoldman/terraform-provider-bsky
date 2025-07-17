@@ -231,6 +231,7 @@ jobs:
           BSKY_HANDLE: ${{ env.BSKY_HANDLE }}
           BSKY_PASSWORD: ${{ env.BSKY_PASSWORD }}
           BSKY_ADMIN_PASSWORD: ${{ env.BSKY_ADMIN_PASSWORD }}
+          BSKY_SKIP_APPVIEW_TESTS: "1"
 
       # - name: Setup tmate session
       #   if: always()

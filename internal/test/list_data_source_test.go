@@ -2,12 +2,15 @@ package test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAccListDataSource(t *testing.T) {
+	// Check if we should skip AppView-dependent tests
+	skipAppViewTests := os.Getenv("BSKY_SKIP_APPVIEW_TESTS") != ""
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testProviderPreCheck(t)
@@ -23,19 +26,31 @@ func TestAccListDataSource(t *testing.T) {
 			// Now read it with the data source and verify all attributes
 			{
 				Config: testAccListBaseConfig() + testAccListDataSourceConfig(),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					// Check base attributes
-					resource.TestCheckResourceAttr("data.bsky_list.test", "name", "Test List for Data Source"),
-					resource.TestCheckResourceAttr("data.bsky_list.test", "description", "A test list for the data source tests"),
-					resource.TestCheckResourceAttr("data.bsky_list.test", "purpose", "app.bsky.graph.defs#curatelist"),
-					resource.TestCheckResourceAttrSet("data.bsky_list.test", "uri"),
-					resource.TestCheckResourceAttrSet("data.bsky_list.test", "cid"),
-					// Check optional attributes
-					resource.TestCheckResourceAttr("data.bsky_list.test", "avatar", ""),
-					resource.TestCheckResourceAttr("data.bsky_list.test", "list_item_count", "0"),
-					// Check empty items array
-					resource.TestCheckResourceAttr("data.bsky_list.test", "items.#", "0"),
-				),
+				Check: func() resource.TestCheckFunc {
+					basicChecks := resource.ComposeAggregateTestCheckFunc(
+						// Check base attributes
+						resource.TestCheckResourceAttr("data.bsky_list.test", "name", "Test List for Data Source"),
+						resource.TestCheckResourceAttr("data.bsky_list.test", "description", "A test list for the data source tests"),
+						resource.TestCheckResourceAttr("data.bsky_list.test", "purpose", "app.bsky.graph.defs#curatelist"),
+						resource.TestCheckResourceAttrSet("data.bsky_list.test", "uri"),
+						resource.TestCheckResourceAttrSet("data.bsky_list.test", "cid"),
+						// Check optional attributes
+						resource.TestCheckResourceAttr("data.bsky_list.test", "avatar", ""),
+					)
+
+					// Only check AppView-dependent attributes if not skipping
+					if !skipAppViewTests {
+						return resource.ComposeAggregateTestCheckFunc(
+							basicChecks,
+							// Check AppView-dependent attributes
+							resource.TestCheckResourceAttr("data.bsky_list.test", "list_item_count", "0"),
+							// Check empty items array
+							resource.TestCheckResourceAttr("data.bsky_list.test", "items.#", "0"),
+						)
+					}
+
+					return basicChecks
+				}(),
 			},
 			// Add an item to the list in a separate step (adding the item to the list is asynchronous)
 			{
@@ -44,19 +59,30 @@ func TestAccListDataSource(t *testing.T) {
 			// Now read it again and verify the item appears
 			{
 				Config: testAccListBaseConfig() + testAccListDataSourceWithItemConfig() + testAccListDataSourceConfig(),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					// Check base attributes still match
-					resource.TestCheckResourceAttr("data.bsky_list.test", "name", "Test List for Data Source"),
-					resource.TestCheckResourceAttr("data.bsky_list.test", "description", "A test list for the data source tests"),
-					resource.TestCheckResourceAttr("data.bsky_list.test", "purpose", "app.bsky.graph.defs#curatelist"),
-					resource.TestCheckResourceAttrSet("data.bsky_list.test", "uri"),
-					resource.TestCheckResourceAttrSet("data.bsky_list.test", "cid"),
-					// Check the item count and list items
-					resource.TestCheckResourceAttr("data.bsky_list.test", "list_item_count", "1"),
-					resource.TestCheckResourceAttr("data.bsky_list.test", "items.#", "1"),
-					resource.TestCheckResourceAttrSet("data.bsky_list.test", "items.0.did"),
-					resource.TestCheckResourceAttrSet("data.bsky_list.test", "items.0.uri"),
-				),
+				Check: func() resource.TestCheckFunc {
+					basicChecks := resource.ComposeAggregateTestCheckFunc(
+						// Check base attributes still match
+						resource.TestCheckResourceAttr("data.bsky_list.test", "name", "Test List for Data Source"),
+						resource.TestCheckResourceAttr("data.bsky_list.test", "description", "A test list for the data source tests"),
+						resource.TestCheckResourceAttr("data.bsky_list.test", "purpose", "app.bsky.graph.defs#curatelist"),
+						resource.TestCheckResourceAttrSet("data.bsky_list.test", "uri"),
+						resource.TestCheckResourceAttrSet("data.bsky_list.test", "cid"),
+					)
+
+					// Only check AppView-dependent attributes if not skipping
+					if !skipAppViewTests {
+						return resource.ComposeAggregateTestCheckFunc(
+							basicChecks,
+							// Check the item count and list items
+							resource.TestCheckResourceAttr("data.bsky_list.test", "list_item_count", "1"),
+							resource.TestCheckResourceAttr("data.bsky_list.test", "items.#", "1"),
+							resource.TestCheckResourceAttrSet("data.bsky_list.test", "items.0.did"),
+							resource.TestCheckResourceAttrSet("data.bsky_list.test", "items.0.uri"),
+						)
+					}
+
+					return basicChecks
+				}(),
 			},
 		},
 	})
